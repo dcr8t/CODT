@@ -10,12 +10,7 @@ export enum MatchStatus {
   FULL = 'FULL'
 }
 
-export interface GsiState {
-  connected: boolean;
-  lastPacket: string;
-  round: number;
-  phase: 'warmup' | 'live' | 'intermission' | 'gameover';
-}
+export type GameType = 'COD_WARZONE' | 'COD_MW3' | 'CS2';
 
 export interface Transaction {
   id: string;
@@ -26,7 +21,7 @@ export interface Transaction {
 }
 
 export interface LinkedAccount {
-  provider: 'Steam' | 'Discord' | 'FaceIT';
+  provider: 'Steam' | 'Activision' | 'Discord' | 'FaceIT';
   username: string;
   id64: string;
   verified: boolean;
@@ -40,21 +35,22 @@ export interface Player {
   elo: number;
   trustFactor: number;
   steamId?: string;
+  activisionId?: string;
 }
 
 export interface Match {
   id: string;
   title: string;
-  gameMode?: string;
-  map: 'de_mirage' | 'de_inferno' | 'de_nuke' | 'de_ancient' | 'de_anubis' | 'de_vertigo' | 'de_overpass';
+  gameType: GameType;
+  gameMode: string;
+  map: string;
   entryFee: number;
   totalPrizePool: number;
   players: Player[];
   maxPlayers: number;
   status: MatchStatus;
-  score: { ct: number; t: number };
-  serverIp: string;
-  rconPassword?: string;
+  score: { teamA: number; teamB: number }; // Generalized score
+  serverIp?: string;
   startTime: string;
   winnerId?: string;
 }
@@ -64,10 +60,9 @@ export interface UserWallet {
   transactions: Transaction[];
 }
 
-// Added missing RconLog interface to resolve the import error in LiveMatch.tsx
-export interface RconLog {
+export interface TelemetryLog {
   timestamp: string;
-  command: string;
-  response: string;
-  type: 'SYSTEM' | 'USER';
+  event: string;
+  data: string;
+  type: 'SYSTEM' | 'GAME_EVENT';
 }

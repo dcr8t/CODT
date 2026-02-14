@@ -6,8 +6,9 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 // Analyze RCON logs for suspicious activity (scripts, rapid fire, impossible movement)
 export const analyzeRconLogs = async (logs: any[]) => {
   try {
+    // FIX: Using gemini-3-pro-preview for complex reasoning tasks like log analysis
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: `Analyze these CS2 RCON logs for suspicious activity (scripts, rapid fire, impossible movement). 
       LOGS: ${JSON.stringify(logs)}
       
@@ -25,7 +26,7 @@ export const analyzeRconLogs = async (logs: any[]) => {
         }
       }
     });
-    return JSON.parse(response.text);
+    return JSON.parse(response.text || '{}');
   } catch (error) {
     return { securityVerdict: 'Unknown', trustModifier: 0, explanation: 'Analysis failed' };
   }
@@ -34,6 +35,7 @@ export const analyzeRconLogs = async (logs: any[]) => {
 // Provide pro-level tactical strategies based on live score and map
 export const generateTacticalAdvice = async (map: string, score: any) => {
   try {
+    // FIX: Using gemini-3-flash-preview for a basic text generation task
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Match on ${map}. Score is CT ${score.ct} - T ${score.t}. 
@@ -48,8 +50,9 @@ export const generateTacticalAdvice = async (map: string, score: any) => {
 // Perform deep behavioral analysis on player telemetry to detect cheating
 export const analyzeAntiCheatLog = async (data: any) => {
   try {
+    // FIX: Using gemini-3-pro-preview for complex diagnostics and deep behavioral analysis
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: `Perform a deep diagnostic on this player telemetry for suspicious patterns indicative of digital assistance or non-human aim.
       DATA: ${JSON.stringify(data)}
       
@@ -67,7 +70,7 @@ export const analyzeAntiCheatLog = async (data: any) => {
         }
       }
     });
-    return JSON.parse(response.text);
+    return JSON.parse(response.text || '{}');
   } catch (error) {
     return { verdict: 'Unknown', riskScore: 0, reason: 'Deep diagnostic failed' };
   }

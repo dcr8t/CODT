@@ -1,37 +1,50 @@
 
 import { Match, MatchStatus } from './types';
 
-// Updated initial matches with required fields like maxPlayers and startTime
 export const INITIAL_MATCHES: Match[] = [
   {
-    id: 'cs_1',
-    title: 'Mirage Premier Grudge',
-    gameMode: 'Competitive',
-    map: 'de_mirage',
-    entryFee: 15,
-    totalPrizePool: 150,
+    id: 'cod_1',
+    title: 'Warzone Urzikstan Killrace',
+    gameType: 'COD_WARZONE',
+    gameMode: 'Killrace Duo',
+    map: 'Urzikstan',
+    entryFee: 25,
+    totalPrizePool: 250,
     players: [],
     maxPlayers: 10,
     status: MatchStatus.OPEN,
-    score: { ct: 0, t: 0 },
-    serverIp: '192.168.1.100:27015',
+    score: { teamA: 0, teamB: 0 },
     startTime: new Date().toISOString()
   },
   {
-    id: 'cs_2',
-    title: 'Inferno Night Cup',
-    gameMode: 'Competitive',
-    map: 'de_inferno',
+    id: 'cod_2',
+    title: 'MW3 Search & Destroy Pro',
+    gameType: 'COD_MW3',
+    gameMode: 'S&D 5v5',
+    map: 'Favela',
     entryFee: 50,
     totalPrizePool: 500,
     players: [],
     maxPlayers: 10,
     status: MatchStatus.OPEN,
-    score: { ct: 0, t: 0 },
-    serverIp: '192.168.1.101:27015',
+    score: { teamA: 0, teamB: 0 },
+    startTime: new Date().toISOString()
+  },
+  {
+    id: 'cs_1',
+    title: 'Mirage Premier Stakes',
+    gameType: 'CS2',
+    gameMode: 'Competitive',
+    map: 'de_mirage',
+    entryFee: 20,
+    totalPrizePool: 200,
+    players: [],
+    maxPlayers: 10,
+    status: MatchStatus.OPEN,
+    score: { teamA: 0, teamB: 0 },
     startTime: new Date().toISOString()
   }
 ];
 
-export const WINNER_PRIZE_PERCENT = 0.7;
-export const PLATFORM_FEE_PERCENT = 0.3;
+export const WINNER_PRIZE_PERCENT = 0.7; // 70% to the winner
+export const PLATFORM_FEE_PERCENT = 0.3; // 30% to the platform

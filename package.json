@@ -1,7 +1,8 @@
+
 {
-  "name": "cs2-command:-elite-server-orchestrator",
+  "name": "elite-rivals-pro",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,9 +16,7 @@
     "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
   }
 }

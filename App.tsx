@@ -63,6 +63,8 @@ const App: React.FC = () => {
     const newMatch: Match = {
       id: `m_${Math.random().toString(36).substr(2, 9)}`,
       title: data.title || 'CS2 Premier Skirmish',
+      // FIX: Added missing gameType property to satisfy the Match interface requirements (Fixes line 63 error)
+      gameType: data.gameType || 'CS2',
       gameMode: data.gameMode || 'Premier',
       map: (data.map as any) || 'de_mirage',
       entryFee: data.entryFee || 10,
@@ -71,7 +73,8 @@ const App: React.FC = () => {
       maxPlayers: 10,
       status: MatchStatus.OPEN,
       startTime: new Date().toISOString(),
-      score: { ct: 0, t: 0 },
+      // FIX: Changed property names from ct/t to teamA/teamB to match the score definition in types.ts (Fixes line 74 error)
+      score: { teamA: 0, teamB: 0 },
       serverIp: '127.0.0.1:27015'
     };
     setMatches(prev => [newMatch, ...prev]);
