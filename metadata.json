@@ -1,0 +1,7 @@
+{
+  "name": "CoD Rivals: Elite Competitive Hub",
+  "description": "A premium competitive platform for Call of Duty players to join high-stakes matches. Features automated prize pool management (70/30 split), 10-player match-making, and AI-powered anti-cheat monitoring.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
