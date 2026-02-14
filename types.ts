@@ -1,5 +1,4 @@
 
-// Expanded MatchStatus with OPEN and FULL for lobby management
 export enum MatchStatus {
   LOBBY = 'LOBBY',
   WARMUP = 'WARMUP',
@@ -11,7 +10,13 @@ export enum MatchStatus {
   FULL = 'FULL'
 }
 
-// Transaction interface for wallet history
+export interface GsiState {
+  connected: boolean;
+  lastPacket: string;
+  round: number;
+  phase: 'warmup' | 'live' | 'intermission' | 'gameover';
+}
+
 export interface Transaction {
   id: string;
   type: 'DEPOSIT' | 'ENTRY' | 'WIN';
@@ -20,31 +25,23 @@ export interface Transaction {
   timestamp: string;
 }
 
-// LinkedAccount interface for OAuth-like identity management
 export interface LinkedAccount {
-  provider: 'Activision' | 'PlayStation' | 'Xbox' | 'Battle.net';
+  provider: 'Steam' | 'Discord' | 'FaceIT';
   username: string;
+  id64: string;
   verified: boolean;
   linkedAt: string;
-}
-
-export interface ServerStats {
-  tickrate: number;
-  uptime: string;
-  players_online: number;
-  current_map: string;
-  rcon_connected: boolean;
 }
 
 export interface Player {
   id: string;
   username: string;
-  rank: string; // e.g., Global Elite, FaceIT 10
+  rank: string;
   elo: number;
   trustFactor: number;
+  steamId?: string;
 }
 
-// Match interface updated with gameMode, maxPlayers, and scoring
 export interface Match {
   id: string;
   title: string;
@@ -52,24 +49,25 @@ export interface Match {
   map: 'de_mirage' | 'de_inferno' | 'de_nuke' | 'de_ancient' | 'de_anubis' | 'de_vertigo' | 'de_overpass';
   entryFee: number;
   totalPrizePool: number;
-  players: any[];
+  players: Player[];
   maxPlayers: number;
   status: MatchStatus;
   score: { ct: number; t: number };
   serverIp: string;
+  rconPassword?: string;
   startTime: string;
   winnerId?: string;
 }
 
+export interface UserWallet {
+  credits: number;
+  transactions: Transaction[];
+}
+
+// Added missing RconLog interface to resolve the import error in LiveMatch.tsx
 export interface RconLog {
   timestamp: string;
   command: string;
   response: string;
-  type: 'SYSTEM' | 'USER' | 'SECURITY';
-}
-
-// UserWallet updated to use Typed transactions
-export interface UserWallet {
-  credits: number;
-  transactions: Transaction[];
+  type: 'SYSTEM' | 'USER';
 }
