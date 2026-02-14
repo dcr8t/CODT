@@ -1,6 +1,6 @@
 {
-  "name": "CoD Rivals: Elite Competitive Hub",
-  "description": "A premium competitive platform for Call of Duty players to join high-stakes matches. Features automated prize pool management (70/30 split), 10-player match-making, and AI-powered anti-cheat monitoring.",
+  "name": "CS2 Command: Elite Server Orchestrator",
+  "description": "A professional CS2 match management platform. Control dedicated servers via RCON, monitor live game state (GSI), and manage high-stakes 5v5 matches with automated 70/30 prize distribution.",
   "requestFramePermissions": [
     "camera"
   ]

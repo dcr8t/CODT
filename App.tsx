@@ -55,17 +55,20 @@ const App: React.FC = () => {
   };
 
   const createMatch = (data: Partial<Match>) => {
+    // Corrected match object instantiation to satisfy Match interface and fix type errors
     const newMatch: Match = {
       id: `m_${Math.random().toString(36).substr(2, 9)}`,
       title: data.title || 'Custom Skirmish',
       gameMode: data.gameMode || 'S&D',
-      map: data.map || 'Unknown',
+      map: (data.map as any) || 'de_mirage',
       entryFee: data.entryFee || 10,
       totalPrizePool: (data.entryFee || 10) * 10,
       players: [],
       maxPlayers: 10,
       status: MatchStatus.OPEN,
       startTime: new Date().toISOString(),
+      score: { ct: 0, t: 0 },
+      serverIp: '127.0.0.1:27015'
     };
     setMatches(prev => [newMatch, ...prev]);
   };

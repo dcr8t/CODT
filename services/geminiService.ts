@@ -3,71 +3,72 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const verifyMatchOutcomeWithAI = async (rawApiData: any, matchContext: any) => {
+// Analyze RCON logs for suspicious activity (scripts, rapid fire, impossible movement)
+export const analyzeRconLogs = async (logs: any[]) => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `You are an official Call of Duty Tournament Arbitrator. 
-      Analyze this simulated API JSON from Activision and determine the winner based on Placement #1.
-      API DATA: ${JSON.stringify(rawApiData)}
-      MATCH CONTEXT: ${JSON.stringify(matchContext)}
+      contents: `Analyze these CS2 RCON logs for suspicious activity (scripts, rapid fire, impossible movement). 
+      LOGS: ${JSON.stringify(logs)}
       
-      Return a JSON with the winnerId, the winning score, and a 'securityAudit' string confirming no suspicious stat anomalies were found in the API data.`,
+      Return a JSON with a securityVerdict ('Clean', 'Flagged'), a trustModifier (-50 to +50), and a brief technical explanation.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            winnerId: { type: Type.STRING },
-            winningScore: { type: Type.NUMBER },
-            securityAudit: { type: Type.STRING },
-            confidenceScore: { type: Type.NUMBER }
+            securityVerdict: { type: Type.STRING },
+            trustModifier: { type: Type.NUMBER },
+            explanation: { type: Type.STRING }
           },
-          required: ['winnerId', 'winningScore', 'securityAudit']
+          required: ['securityVerdict', 'trustModifier', 'explanation']
         }
       }
     });
     return JSON.parse(response.text);
   } catch (error) {
-    console.error("Verification Error:", error);
-    return null;
+    return { securityVerdict: 'Unknown', trustModifier: 0, explanation: 'Analysis failed' };
   }
 };
 
-export const analyzeAntiCheatLog = async (playerData: any) => {
+// Provide pro-level tactical strategies based on live score and map
+export const generateTacticalAdvice = async (map: string, score: any) => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Analyze the following player performance metrics for suspicious behavior or cheating in Call of Duty. Return a JSON object with a riskScore (0-100), a detailed reason, and a verdict.
-      Player Metrics: ${JSON.stringify(playerData)}`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            riskScore: { type: Type.NUMBER },
-            reason: { type: Type.STRING },
-            verdict: { type: Type.STRING, enum: ['Clean', 'Suspicious', 'Flagged'] }
-          },
-          required: ['riskScore', 'reason', 'verdict']
-        }
-      }
-    });
-    return JSON.parse(response.text);
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    return { riskScore: 0, reason: "Analysis unavailable", verdict: "Unknown" };
-  }
-};
-
-export const generateMatchCommentary = async (match: any, eventType: string) => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate a hype, professional esports-style commentary line for a Call of Duty match on ${match.map}. Event: ${eventType}. Keep it under 20 words.`,
+      contents: `Match on ${map}. Score is CT ${score.ct} - T ${score.t}. 
+      Give a 1-sentence pro-strat for the trailing team.`,
     });
     return response.text;
   } catch (error) {
-    return "The action is heating up on the battlefield!";
+    return "Focus on map control and eco management.";
+  }
+};
+
+// Perform deep behavioral analysis on player telemetry to detect cheating
+export const analyzeAntiCheatLog = async (data: any) => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Perform a deep diagnostic on this player telemetry for suspicious patterns indicative of digital assistance or non-human aim.
+      DATA: ${JSON.stringify(data)}
+      
+      Return a JSON with: verdict ('Flagged', 'Clean'), riskScore (0-100), and reason.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            verdict: { type: Type.STRING },
+            riskScore: { type: Type.NUMBER },
+            reason: { type: Type.STRING }
+          },
+          required: ['verdict', 'riskScore', 'reason']
+        }
+      }
+    });
+    return JSON.parse(response.text);
+  } catch (error) {
+    return { verdict: 'Unknown', riskScore: 0, reason: 'Deep diagnostic failed' };
   }
 };
