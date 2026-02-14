@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import { INITIAL_MATCHES, PLATFORM_FEE_PERCENT, WINNER_PRIZE_PERCENT } from './constants';
-import { Match, MatchStatus, UserWallet, Transaction, LinkedAccount } from './types';
+import { Match, MatchStatus, UserWallet, Transaction, LinkedAccount, Player } from './types';
 import Dashboard from './components/Dashboard';
 import MatchDetails from './components/MatchDetails';
 import Profile from './components/Profile';
@@ -19,10 +19,13 @@ const App: React.FC = () => {
     ]
   });
   
+  // FIX: Added 'elo' and 'trustFactor' to satisfy the Player interface used in Match.players
   const [currentUser, setCurrentUser] = useState({
     id: 'user_main',
     username: 'Rival_Ghost',
     rank: 'Premier 15,200',
+    elo: 15200,
+    trustFactor: 98,
     winRate: 54.2,
     antiCheatScore: 98,
     linkedAccounts: [] as LinkedAccount[]
@@ -96,7 +99,15 @@ const App: React.FC = () => {
     addTransaction('ENTRY', match.entryFee, `Entry: ${match.title}`);
     setMatches(prev => prev.map(m => {
       if (m.id === matchId) {
-        const newPlayers = [...m.players, currentUser];
+        // FIX: Constructing a Player typed object to avoid passing excess state properties (like winRate) to the match list
+        const playerEntry: Player = {
+          id: currentUser.id,
+          username: currentUser.username,
+          rank: currentUser.rank,
+          elo: currentUser.elo,
+          trustFactor: currentUser.trustFactor,
+        };
+        const newPlayers = [...m.players, playerEntry];
         return {
           ...m,
           players: newPlayers,
