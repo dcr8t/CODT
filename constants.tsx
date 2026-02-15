@@ -1,10 +1,12 @@
-
 import { Match, MatchStatus } from './types';
+
+export const WINNER_PRIZE_PERCENT = 0.7; // 70% to the winner
+export const PLATFORM_FEE_PERCENT = 0.3; // 30% to the platform
 
 export const INITIAL_MATCHES: Match[] = [
   {
-    id: 'cod_1',
-    title: 'Warzone Urzikstan Killrace',
+    id: 'cod_w_1',
+    title: 'Warzone: Urzikstan Duo Blitz',
     gameType: 'COD_WARZONE',
     gameMode: 'Killrace Duo',
     map: 'Urzikstan',
@@ -17,10 +19,10 @@ export const INITIAL_MATCHES: Match[] = [
     startTime: new Date().toISOString()
   },
   {
-    id: 'cod_2',
-    title: 'MW3 Search & Destroy Pro',
+    id: 'cod_m_1',
+    title: 'MW3: S&D Competitive Pro',
     gameType: 'COD_MW3',
-    gameMode: 'S&D 5v5',
+    gameMode: 'Search & Destroy 5v5',
     map: 'Favela',
     entryFee: 50,
     totalPrizePool: 500,
@@ -31,13 +33,13 @@ export const INITIAL_MATCHES: Match[] = [
     startTime: new Date().toISOString()
   },
   {
-    id: 'cs_1',
-    title: 'Mirage Premier Stakes',
-    gameType: 'CS2',
-    gameMode: 'Competitive',
-    map: 'de_mirage',
-    entryFee: 20,
-    totalPrizePool: 200,
+    id: 'cod_w_2',
+    title: 'Rebirth: Island Resurgence',
+    gameType: 'COD_WARZONE',
+    gameMode: 'Solo High-Stakes',
+    map: 'Rebirth Island',
+    entryFee: 100,
+    totalPrizePool: 1000,
     players: [],
     maxPlayers: 10,
     status: MatchStatus.OPEN,
@@ -45,6 +47,3 @@ export const INITIAL_MATCHES: Match[] = [
     startTime: new Date().toISOString()
   }
 ];
-
-export const WINNER_PRIZE_PERCENT = 0.7; // 70% to the winner
-export const PLATFORM_FEE_PERCENT = 0.3; // 30% to the platform

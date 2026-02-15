@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
-import { INITIAL_MATCHES, PLATFORM_FEE_PERCENT, WINNER_PRIZE_PERCENT } from './constants';
+import { INITIAL_MATCHES, WINNER_PRIZE_PERCENT } from './constants';
 import { Match, MatchStatus, UserWallet, Transaction, LinkedAccount, Player } from './types';
 import Dashboard from './components/Dashboard';
 import MatchDetails from './components/MatchDetails';
@@ -13,29 +12,28 @@ import ServerSetup from './components/ServerSetup';
 const App: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
   const [wallet, setWallet] = useState<UserWallet>({ 
-    credits: 500,
+    credits: 1000,
     transactions: [
-      { id: 't0', type: 'DEPOSIT', amount: 500, description: 'Initial balance', timestamp: new Date().toISOString() }
+      { id: 't0', type: 'DEPOSIT', amount: 1000, description: 'Arena Initial Deposit', timestamp: new Date().toISOString() }
     ]
   });
   
-  // FIX: Added 'elo' and 'trustFactor' to satisfy the Player interface used in Match.players
   const [currentUser, setCurrentUser] = useState({
-    id: 'user_main',
-    username: 'Rival_Ghost',
-    rank: 'Premier 15,200',
-    elo: 15200,
-    trustFactor: 98,
-    winRate: 54.2,
-    antiCheatScore: 98,
-    linkedAccounts: [] as LinkedAccount[]
+    id: 'user_ghost',
+    username: 'Ghost_Rider_4',
+    rank: 'Iridescent',
+    elo: 18500,
+    trustFactor: 99,
+    linkedAccounts: [
+        { provider: 'Activision', username: 'Ghost_Rider#4421', id64: 'ACT_9921', verified: true, linkedAt: new Date().toISOString() }
+    ] as LinkedAccount[]
   });
 
   const linkAccount = (provider: LinkedAccount['provider'], username: string) => {
     const newAccount: LinkedAccount = {
       provider,
       username,
-      id64: '76561198' + Math.floor(Math.random() * 100000000),
+      id64: 'ID_' + Math.floor(Math.random() * 1000000),
       verified: true,
       linkedAt: new Date().toISOString()
     };
@@ -47,7 +45,7 @@ const App: React.FC = () => {
 
   const addTransaction = (type: Transaction['type'], amount: number, description: string) => {
     const newTx: Transaction = {
-      id: `t_${Math.random().toString(36).substr(2, 9)}`,
+      id: `tx_${Math.random().toString(36).substr(2, 9)}`,
       type,
       amount,
       description,
@@ -62,20 +60,17 @@ const App: React.FC = () => {
   const createMatch = (data: Partial<Match>) => {
     const newMatch: Match = {
       id: `m_${Math.random().toString(36).substr(2, 9)}`,
-      title: data.title || 'CS2 Premier Skirmish',
-      // FIX: Added missing gameType property to satisfy the Match interface requirements (Fixes line 63 error)
-      gameType: data.gameType || 'CS2',
-      gameMode: data.gameMode || 'Premier',
-      map: (data.map as any) || 'de_mirage',
-      entryFee: data.entryFee || 10,
-      totalPrizePool: (data.entryFee || 10) * 10,
+      title: data.title || 'Custom COD Skirmish',
+      gameType: data.gameType || 'COD_WARZONE',
+      gameMode: data.gameMode || 'Killrace',
+      map: (data.map as any) || 'Urzikstan',
+      entryFee: data.entryFee || 25,
+      totalPrizePool: (data.entryFee || 25) * 10,
       players: [],
       maxPlayers: 10,
       status: MatchStatus.OPEN,
       startTime: new Date().toISOString(),
-      // FIX: Changed property names from ct/t to teamA/teamB to match the score definition in types.ts (Fixes line 74 error)
       score: { teamA: 0, teamB: 0 },
-      serverIp: '127.0.0.1:27015'
     };
     setMatches(prev => [newMatch, ...prev]);
   };
@@ -84,25 +79,19 @@ const App: React.FC = () => {
     const match = matches.find(m => m.id === matchId);
     if (!match) return;
 
-    if (!currentUser.linkedAccounts.some(acc => acc.provider === 'Steam')) {
-      alert("Safety Requirement: Link your Steam Identity via Profile to ensure server synchronization.");
-      return;
-    }
-
     if (match.players.some(p => p.id === currentUser.id)) {
-      alert("Registration active: You are already in the squad.");
+      alert("Already deployed to this lobby.");
       return;
     }
 
     if (wallet.credits < match.entryFee) {
-      alert("Insufficient Credits: Please top up your wallet.");
+      alert("Insufficient Combat Credits. Top up in Profile.");
       return;
     }
 
-    addTransaction('ENTRY', match.entryFee, `Entry: ${match.title}`);
+    addTransaction('ENTRY', match.entryFee, `Deployment: ${match.title}`);
     setMatches(prev => prev.map(m => {
       if (m.id === matchId) {
-        // FIX: Constructing a Player typed object to avoid passing excess state properties (like winRate) to the match list
         const playerEntry: Player = {
           id: currentUser.id,
           username: currentUser.username,
@@ -124,9 +113,9 @@ const App: React.FC = () => {
   const resolveMatch = (matchId: string, winnerId: string) => {
     setMatches(prev => prev.map(m => {
       if (m.id === matchId) {
-        if (winnerId === currentUser.id) {
+        if (winnerId === currentUser.id && m.status !== MatchStatus.COMPLETED) {
           const prize = m.totalPrizePool * WINNER_PRIZE_PERCENT;
-          addTransaction('WIN', prize, `Major Victory: ${m.title}`);
+          addTransaction('WIN', prize, `Victory Payout: ${m.title}`);
         }
         return { ...m, status: MatchStatus.COMPLETED, winnerId };
       }
@@ -140,33 +129,35 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
-      <div className="min-h-screen flex flex-col bg-slate-950">
-        <nav className="glass-panel sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-white/5">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center rotate-45 border border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.3)]">
-              <i className="fa-solid fa-crosshairs -rotate-45 text-slate-950 text-xl font-black"></i>
+      <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+        <nav className="glass-panel sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-white/10 shadow-lg">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 gradient-orange rounded-lg flex items-center justify-center border border-white/10 shadow-[0_0_20px_rgba(249,115,22,0.4)] group-hover:scale-110 transition-transform">
+              <i className="fa-solid fa-person-rifle text-slate-950 text-xl"></i>
             </div>
-            <span className="font-orbitron text-2xl font-black tracking-tighter hidden md:block uppercase">
-              CS2<span className="text-orange-500">Command</span>
+            <span className="font-orbitron text-2xl font-black tracking-tighter uppercase">
+              ELITE<span className="text-orange-500">RIVALS</span>
             </span>
           </Link>
-          <div className="flex items-center gap-10 font-orbitron font-bold text-[10px] uppercase tracking-[0.2em] text-slate-400">
-            <Link to="/" className="hover:text-orange-400 transition-colors">Tactical Hub</Link>
-            <Link to="/setup" className="hover:text-orange-400 transition-colors">Server Link</Link>
-            <Link to="/anticheat" className="hover:text-orange-400 transition-colors">Anti-Cheat</Link>
+          
+          <div className="hidden lg:flex items-center gap-8 font-orbitron font-bold text-[10px] uppercase tracking-[0.2em] text-slate-400">
+            <Link to="/" className="hover:text-orange-500 transition-colors">War Room</Link>
+            <Link to="/anticheat" className="hover:text-orange-500 transition-colors">Ricochet-X</Link>
+            <Link to="/setup" className="hover:text-orange-500 transition-colors">Server Link</Link>
           </div>
+
           <div className="flex items-center gap-6">
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Wallet</span>
-              <span className="text-orange-400 font-orbitron font-black">${wallet.credits.toFixed(2)}</span>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Credits</span>
+              <span className="text-orange-500 font-orbitron font-black text-lg leading-none">${wallet.credits.toFixed(0)}</span>
             </div>
-            <Link to="/profile" className="w-11 h-11 rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden hover:border-orange-500/50 transition-all">
-              <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${currentUser.username}`} alt="Avatar" />
+            <Link to="/profile" className="w-10 h-10 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden hover:border-orange-500/50 transition-all shadow-inner">
+              <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser.username}`} alt="Avatar" />
             </Link>
           </div>
         </nav>
 
-        <main className="flex-1 container mx-auto px-4 py-8">
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
           <Routes>
             <Route path="/" element={<Dashboard matches={matches} joinMatch={joinMatch} onCreateMatch={createMatch} />} />
             <Route path="/match/:id" element={<MatchDetails matches={matches} joinMatch={joinMatch} startMatch={startMatch} currentUser={currentUser} />} />
@@ -178,8 +169,15 @@ const App: React.FC = () => {
         </main>
 
         <footer className="glass-panel py-6 border-t border-white/5 mt-auto">
-          <div className="text-center text-[10px] text-slate-600 font-bold uppercase tracking-[0.3em]">
-            Valve GSI v1.4.2 Protected • RCON Encrypted
+          <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.3em]">
+              Activision Blizzard GSI Protected • Encrypted Payouts
+            </div>
+            <div className="flex gap-4 text-slate-500 text-sm">
+              <i className="fa-brands fa-discord hover:text-white cursor-pointer"></i>
+              <i className="fa-brands fa-twitter hover:text-white cursor-pointer"></i>
+              <i className="fa-brands fa-twitch hover:text-white cursor-pointer"></i>
+            </div>
           </div>
         </footer>
       </div>
