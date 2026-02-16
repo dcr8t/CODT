@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const getAiClient = () => {
@@ -38,6 +37,36 @@ async function decodeAudioData(
   }
   return buffer;
 }
+
+// Authorize Withdrawal: Security check before releasing funds
+export const authorizeWithdrawal = async (amount: number, userHistory: any) => {
+  const ai = getAiClient();
+  if (!ai) return { authorized: true, code: "BYPASS_MODE", reason: "Security Offline" };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Perform a financial audit for a withdrawal of $${amount}. User History: ${JSON.stringify(userHistory)}. 
+      Check for suspicious patterns (rapid deposit/withdraw, 0 matches played).
+      Return JSON: { "authorized": boolean, "code": "string", "reason": "string" }`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            authorized: { type: Type.BOOLEAN },
+            code: { type: Type.STRING },
+            reason: { type: Type.STRING }
+          },
+          required: ['authorized', 'code', 'reason']
+        }
+      }
+    });
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    return { authorized: false, code: "AUDIT_FAIL", reason: "Security protocol error during audit." };
+  }
+};
 
 // Arbiter: Analyzes match telemetry to verify a winner and detect fraud
 export const verifyMatchResult = async (matchData: any, telemetry: any[]) => {

@@ -94,7 +94,20 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
 
         {/* Action Sidebar */}
         <aside className="space-y-6">
-          <section className={`glass-panel p-8 rounded-[40px] border-orange-500/30 sticky top-28 transition-all ${allReady ? 'bg-orange-500/10 animate-pulse-border' : ''}`}>
+          <section className={`glass-panel p-8 rounded-[40px] border-orange-500/30 sticky top-28 transition-all ${userInMatch ? 'bg-orange-500/5 animate-pulse-border' : ''}`}>
+            
+            {userInMatch && (
+              <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-2xl mb-8 flex items-center gap-4">
+                 <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-slate-950">
+                    <i className="fa-solid fa-lock text-sm"></i>
+                 </div>
+                 <div>
+                    <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Buy-In Secured</p>
+                    <p className="text-[11px] font-bold text-white uppercase font-orbitron">${match.entryFee} Locked in Escrow</p>
+                 </div>
+              </div>
+            )}
+
             <div className="text-center mb-8">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Lobby Status</p>
               <div className={`inline-block px-5 py-2 rounded-full font-orbitron font-black text-[10px] uppercase tracking-[0.2em] ${allReady ? 'bg-orange-500 text-slate-950 shadow-lg shadow-orange-500/30' : 'bg-white/5 text-white border border-white/10'}`}>
@@ -113,7 +126,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
               <div className="space-y-4">
                 <button 
                   onClick={() => toggleReady(match.id)}
-                  className={`w-full py-5 rounded-2xl font-orbitron font-black text-xs uppercase tracking-widest transition-all ${isReady ? 'bg-lime-500 text-slate-950' : 'bg-white/10 text-white hover:bg-white hover:text-slate-950 border border-white/10'}`}
+                  className={`w-full py-5 rounded-2xl font-orbitron font-black text-xs uppercase tracking-widest transition-all ${isReady ? 'bg-lime-500 text-slate-950 shadow-lg shadow-lime-500/20' : 'bg-white/10 text-white hover:bg-white hover:text-slate-950 border border-white/10'}`}
                 >
                   {isReady ? 'READY FOR DEPLOYMENT' : 'MARK AS READY'}
                 </button>
@@ -135,7 +148,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
                  <p className="text-[9px] font-bold uppercase tracking-widest">Escrow Protection Active</p>
                </div>
                <p className="text-[8px] text-slate-600 font-bold leading-relaxed uppercase">
-                 Credits are locked until match completion. Final payout determined by GSI Arbtiter and Gemini-X Anti-Cheat protocols.
+                 GSI Telemetry verifies all match conditions before prize pool distribution. 70% winner-takes-all logic applies.
                </p>
             </div>
           </section>

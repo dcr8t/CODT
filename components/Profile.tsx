@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
-import { UserWallet, LinkedAccount } from '../types';
+import { UserWallet, LinkedAccount, Transaction } from '../types';
+import { authorizeWithdrawal } from '../services/geminiService';
 
 interface ProfileProps {
   user: any;
@@ -12,6 +12,8 @@ interface ProfileProps {
 const Profile: React.FC<ProfileProps> = ({ user, wallet, onLinkAccount, onWithdraw }) => {
   const [linking, setLinking] = useState<LinkedAccount['provider'] | null>(null);
   const [inputUsername, setInputUsername] = useState('');
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditLog, setAuditLog] = useState<string | null>(null);
 
   const handleLink = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +24,27 @@ const Profile: React.FC<ProfileProps> = ({ user, wallet, onLinkAccount, onWithdr
     }
   };
 
+  const processWithdrawal = async () => {
+    if (wallet.credits <= 0) return;
+    setIsAuditing(true);
+    setAuditLog("Initiating AI Security Audit...");
+    
+    const result = await authorizeWithdrawal(wallet.credits, wallet.transactions.slice(0, 5));
+    
+    setTimeout(() => {
+      if (result.authorized) {
+        onWithdraw(wallet.credits);
+        setAuditLog(`Withdrawal Approved: ${result.code}`);
+      } else {
+        setAuditLog(`Flagged: ${result.reason}`);
+      }
+      setIsAuditing(false);
+      setTimeout(() => setAuditLog(null), 3000);
+    }, 2000);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 pb-20">
       {/* Profile Header */}
       <section className="glass-panel p-10 rounded-[40px] border-white/10 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full"></div>
@@ -41,6 +62,53 @@ const Profile: React.FC<ProfileProps> = ({ user, wallet, onLinkAccount, onWithdr
           <p className="text-4xl font-orbitron font-black text-white">${wallet.credits.toFixed(2)}</p>
         </div>
       </section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tactical Vault */}
+        <section className="glass-panel p-8 rounded-3xl border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-transparent">
+          <h3 className="font-orbitron font-bold text-xs uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-2">
+            <i className="fa-solid fa-vault text-orange-500"></i> Tactical Vault
+          </h3>
+          <p className="text-xs text-slate-500 font-medium mb-6 leading-relaxed uppercase">
+            Link your external escrow provider to bridge real-world currency to battlefield credits.
+          </p>
+          
+          <div className="space-y-3">
+             {['Stripe Connect', 'Web3 Wallet', 'Direct Bank'].map(method => (
+               <button key={method} className="w-full p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between hover:border-orange-500/30 transition-all group">
+                 <span className="text-xs font-black text-slate-400 group-hover:text-white transition-colors">{method}</span>
+                 <i className="fa-solid fa-link text-[10px] text-slate-600"></i>
+               </button>
+             ))}
+          </div>
+        </section>
+
+        {/* AI Payout Authorization */}
+        <section className="glass-panel p-8 rounded-3xl border-white/5 flex flex-col justify-between">
+          <div>
+            <h3 className="font-orbitron font-bold text-xs uppercase tracking-[0.2em] text-white mb-6">Withdrawal Arbiter</h3>
+            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 mb-6">
+               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Max Available</p>
+               <p className="text-2xl font-orbitron font-black text-white">${wallet.credits.toFixed(2)}</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            {auditLog && (
+              <div className={`p-3 rounded-lg text-center text-[10px] font-black uppercase tracking-widest animate-pulse ${auditLog.includes('Approved') ? 'bg-lime-500/20 text-lime-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                {auditLog}
+              </div>
+            )}
+            <button 
+              onClick={processWithdrawal}
+              disabled={isAuditing || wallet.credits <= 0}
+              className="w-full py-4 bg-white text-slate-950 rounded-2xl font-orbitron font-black text-xs uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all shadow-xl shadow-white/10 disabled:opacity-30"
+            >
+              {isAuditing ? 'AI AUDITING...' : 'REQUEST PAYOUT'}
+            </button>
+          </div>
+        </section>
+      </div>
 
       {/* Linked Accounts */}
       <section className="glass-panel p-8 rounded-3xl border-white/10">
@@ -78,67 +146,36 @@ const Profile: React.FC<ProfileProps> = ({ user, wallet, onLinkAccount, onWithdr
         </div>
       </section>
 
-      {/* Steam Link Modal (Simulation of OpenID) */}
-      {linking && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-          <div className="glass-panel w-full max-w-sm p-8 rounded-[40px] border-orange-500/30">
-            <div className="text-center mb-6">
-              <i className="fa-brands fa-steam text-5xl text-white mb-4"></i>
-              <h2 className="text-xl font-orbitron font-bold text-white uppercase">Steam Secure Connect</h2>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed">You will be redirected to Steam to verify your SteamID64. We do not store your credentials.</p>
-            </div>
-            <form onSubmit={handleLink} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Enter Community Name (Demo)</label>
-                <input 
-                  required 
-                  autoFocus
-                  className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-orange-500" 
-                  placeholder="Gaben_Fan_99"
-                  value={inputUsername}
-                  onChange={e => setInputUsername(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setLinking(null)} className="flex-1 py-3 bg-slate-800 rounded-xl font-bold text-xs">ABORT</button>
-                <button type="submit" className="flex-1 py-3 bg-orange-500 text-slate-950 rounded-xl font-black font-orbitron text-xs">AUTHORIZE</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Transaction Ledger */}
       <section className="glass-panel rounded-3xl border-white/10 overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex justify-between items-center">
-          <h3 className="font-orbitron font-bold uppercase tracking-widest text-xs text-slate-500">Financial Records</h3>
-          <button 
-            onClick={() => onWithdraw(wallet.credits)}
-            className="px-4 py-2 bg-orange-500/10 border border-orange-500/30 rounded-full text-[9px] font-black text-orange-500 uppercase hover:bg-orange-500 hover:text-slate-950 transition-all"
-          >
-            Withdraw Credits
-          </button>
+        <div className="p-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+          <h3 className="font-orbitron font-bold uppercase tracking-widest text-xs text-slate-500">Financial Ledger</h3>
+          <span className="text-[9px] font-black text-lime-500 uppercase border border-lime-500/20 px-3 py-1 rounded-full">Encrypted</span>
         </div>
         <div className="divide-y divide-white/5">
-          {wallet.transactions.map((tx, i) => (
-            <div key={i} className="p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  tx.type === 'WIN' ? 'bg-orange-500/20 text-orange-400' : 
-                  tx.type === 'ENTRY' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
-                }`}>
-                  <i className={`fa-solid ${tx.type === 'WIN' ? 'fa-trophy' : tx.type === 'ENTRY' ? 'fa-minus' : 'fa-plus'}`}></i>
+          {wallet.transactions.length === 0 ? (
+            <div className="p-20 text-center text-slate-600 font-bold uppercase tracking-widest text-xs italic">No activity detected on chain.</div>
+          ) : (
+            wallet.transactions.map((tx, i) => (
+              <div key={i} className="p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    tx.type === 'WIN' ? 'bg-lime-500/20 text-lime-400' : 
+                    tx.type === 'ENTRY' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    <i className={`fa-solid ${tx.type === 'WIN' ? 'fa-trophy' : tx.type === 'ENTRY' ? 'fa-lock' : 'fa-plus'}`}></i>
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">{tx.description}</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-tighter">{new Date(tx.timestamp).toLocaleDateString()} @ {new Date(tx.timestamp).toLocaleTimeString()}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-sm">{tx.description}</p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-tighter">{new Date(tx.timestamp).toLocaleDateString()} @ {new Date(tx.timestamp).toLocaleTimeString()}</p>
-                </div>
+                <p className={`font-orbitron font-bold text-lg ${tx.type === 'WIN' || tx.type === 'DEPOSIT' ? 'text-lime-400' : 'text-slate-400'}`}>
+                  {tx.type === 'ENTRY' || tx.type === 'WITHDRAW' ? '-' : '+'}${tx.amount.toFixed(2)}
+                </p>
               </div>
-              <p className={`font-orbitron font-bold text-lg ${tx.type === 'WIN' || tx.type === 'DEPOSIT' ? 'text-orange-400' : 'text-slate-400'}`}>
-                {tx.type === 'ENTRY' ? '-' : '+'}${tx.amount.toFixed(2)}
-              </p>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
     </div>
