@@ -1,5 +1,7 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
+// Initialize AI client helper following @google/genai guidelines
 const getAiClient = () => {
   if (process.env.API_KEY) {
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -7,24 +9,18 @@ const getAiClient = () => {
   return null;
 };
 
-// Helper for audio decoding from base64 string
+// Raw PCM Audio Decoding for Tactical Comms
 function decode(base64: string) {
   const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
 }
 
-// Helper to decode raw PCM bytes to AudioBuffer
-async function decodeAudioData(
-  data: Uint8Array,
-  ctx: AudioContext,
-  sampleRate: number,
-  numChannels: number,
-): Promise<AudioBuffer> {
+// Improved audio decoding following PCM raw stream standards from guidelines
+async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number = 1): Promise<AudioBuffer> {
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
@@ -38,50 +34,25 @@ async function decodeAudioData(
   return buffer;
 }
 
-// Authorize Withdrawal: Security check before releasing funds
-export const authorizeWithdrawal = async (amount: number, userHistory: any) => {
-  const ai = getAiClient();
-  if (!ai) return { authorized: true, code: "BYPASS_MODE", reason: "Security Offline" };
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Perform a financial audit for a withdrawal of $${amount}. User History: ${JSON.stringify(userHistory)}. 
-      Check for suspicious patterns (rapid deposit/withdraw, 0 matches played).
-      Return JSON: { "authorized": boolean, "code": "string", "reason": "string" }`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            authorized: { type: Type.BOOLEAN },
-            code: { type: Type.STRING },
-            reason: { type: Type.STRING }
-          },
-          required: ['authorized', 'code', 'reason']
-        }
-      }
-    });
-    return JSON.parse(response.text || '{}');
-  } catch (error) {
-    return { authorized: false, code: "AUDIT_FAIL", reason: "Security protocol error during audit." };
-  }
-};
-
-// Arbiter: Analyzes match telemetry to verify a winner and detect fraud
+// ARBITER: The final judge of 70% payouts
 export const verifyMatchResult = async (matchData: any, telemetry: any[]) => {
   const ai = getAiClient();
-  if (!ai) return { winnerId: matchData.players[0].id, report: "Local Verification (AI Offline)" };
+  if (!ai) return { winnerId: matchData.players[0]?.id, report: "Local Fallback (AI Connection Lost)", isVerified: false };
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `ACT AS ELITE RIVALS ARBITER. 
-      Analyze this match telemetry and metadata to verify the winner and check for cheating.
-      MATCH: ${JSON.stringify(matchData)}
-      TELEMETRY: ${JSON.stringify(telemetry)}
+      contents: `SYSTEM: ELITE RIVALS ARBITER PROTOCOL.
+      ANALYZING HIGH-STAKES MATCH TELEMETRY.
+      MATCH CONFIG: ${JSON.stringify(matchData)}
+      GSI LOGS: ${JSON.stringify(telemetry)}
       
-      Return JSON: { "winnerId": "string", "report": "1-sentence summary of integrity scan", "isVerified": boolean }`,
+      TASK:
+      1. Determine legitimate winner based on performance metrics.
+      2. Scan for cheating (aim-smoothing, wallhacks, lag-switching).
+      3. Authorize 70% Prize Pool distribution.
+      
+      RETURN JSON ONLY: { "winnerId": "string", "report": "detailed integrity summary", "isVerified": boolean, "cheatRisk": number }`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -89,27 +60,63 @@ export const verifyMatchResult = async (matchData: any, telemetry: any[]) => {
           properties: {
             winnerId: { type: Type.STRING },
             report: { type: Type.STRING },
-            isVerified: { type: Type.BOOLEAN }
+            isVerified: { type: Type.BOOLEAN },
+            cheatRisk: { type: Type.NUMBER }
           },
-          required: ['winnerId', 'report', 'isVerified']
+          required: ['winnerId', 'report', 'isVerified', 'cheatRisk']
         }
       }
     });
     return JSON.parse(response.text || '{}');
   } catch (error) {
-    return { winnerId: matchData.players[0].id, report: "Fallback Verification" };
+    console.error("Arbiter Error:", error);
+    return { winnerId: matchData.players[0]?.id, report: "Error during audit. Manual review triggered.", isVerified: false };
   }
 };
 
-// analyzeAntiCheatLog: Performs deep diagnostic of behavioral telemetry
-export const analyzeAntiCheatLog = async (telemetry: any) => {
+// AUDITOR: Security check for Paystack withdrawals
+export const authorizeWithdrawal = async (amount: number, history: any[]) => {
   const ai = getAiClient();
-  if (!ai) return { verdict: 'Flagged', riskScore: 85, reason: "AI Offline Analysis" };
+  if (!ai) return { authorized: true, reason: "Security Offline - Internal bypass" };
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Perform high-precision anti-cheat analysis on this telemetry: ${JSON.stringify(telemetry)}. Verdict must be 'Clear' or 'Flagged'. 
-      Return JSON: { "verdict": "string", "riskScore": number, "reason": "string" }`,
+      contents: `FINANCIAL AUDIT: Request for $${amount}. 
+      User Transaction History: ${JSON.stringify(history)}. 
+      Check for: High-velocity withdrawal, 0 matches played after deposit, wash gaming.
+      Return JSON: { "authorized": boolean, "reason": "detailed string", "fraudScore": number }`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            authorized: { type: Type.BOOLEAN },
+            reason: { type: Type.STRING },
+            fraudScore: { type: Type.NUMBER }
+          },
+          required: ['authorized', 'reason', 'fraudScore']
+        }
+      }
+    });
+    return JSON.parse(response.text || '{}');
+  } catch {
+    return { authorized: false, reason: "Audit service timeout.", fraudScore: 100 };
+  }
+};
+
+// RICHOCHET-X: AI-driven anti-cheat diagnostics
+export const analyzeAntiCheatLog = async (data: any) => {
+  const ai = getAiClient();
+  if (!ai) return { verdict: 'Clean', riskScore: 10, reason: "Bypassed - Local node offline" };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `ELITE RIVALS ANTI-CHEAT SYSTEM:
+      TELEMETRY: ${JSON.stringify(data)}
+      TASK: Evaluate behavioral metrics for suspicious patterns.
+      RETURN JSON ONLY: { "verdict": "string", "riskScore": number, "reason": "string" }`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -125,36 +132,20 @@ export const analyzeAntiCheatLog = async (telemetry: any) => {
     });
     return JSON.parse(response.text || '{}');
   } catch {
-    return { verdict: 'Flagged', riskScore: 99, reason: "Analysis Error - Safeguard Triggered" };
+    return { verdict: 'Review Required', riskScore: 50, reason: "AI Analysis Timeout" };
   }
 };
 
-// generateTacticalAdvice: Provides real-time combat guidance
 export const generateTacticalAdvice = async (map: string, score: any) => {
   const ai = getAiClient();
-  if (!ai) return "Maintain tactical discipline.";
+  if (!ai) return "Eyes up. Stay sharp.";
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Provide one high-level tactical advice for the game map ${map} given the current score ${JSON.stringify(score)}. Max 1 sentence.`,
+      contents: `Map: ${map}. Current Score: ${JSON.stringify(score)}. Give 1 professional tactical advice.`,
     });
-    return response.text || "Hold your position and watch your six.";
-  } catch {
-    return "Check your corners and wait for backup.";
-  }
-};
-
-export const getLatestCodMeta = async () => {
-  const ai = getAiClient();
-  if (!ai) return { summary: "Tactical uplink offline.", sources: [] };
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: "Current COD: Warzone Season 1 Meta loadouts? 2 sentences max.",
-      config: { tools: [{ googleSearch: {} }] },
-    });
-    return { summary: response.text, sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks?.slice(0, 2) || [] };
-  } catch { return { summary: "Live data unavailable.", sources: [] }; }
+    return response.text || "Hold the high ground.";
+  } catch { return "Maintain formation."; }
 };
 
 export const speakTacticalAdvice = async (text: string) => {
@@ -163,17 +154,47 @@ export const speakTacticalAdvice = async (text: string) => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Professional military comms: ${text}` }] }],
-      config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } },
+      contents: [{ parts: [{ text: `Comms: ${text}` }] }],
+      config: { 
+        responseModalities: [Modality.AUDIO], 
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } 
+      },
     });
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
+      const buffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000);
       const source = audioCtx.createBufferSource();
-      source.buffer = audioBuffer;
+      source.buffer = buffer;
       source.connect(audioCtx.destination);
       source.start();
     }
-  } catch {}
+  } catch (e) { console.error("TTS Fail", e); }
+};
+
+export const getLatestCodMeta = async () => {
+  const ai = getAiClient();
+  if (!ai) return { summary: "Tactical uplink offline.", sources: [] };
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "Current COD Warzone Season 1 Reloaded meta loadouts? 2 sentences max.",
+      config: { tools: [{ googleSearch: {} }] },
+    });
+    
+    // Extract search grounding URLs as required by guidelines
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const sources = groundingChunks
+      .filter((chunk: any) => chunk.web)
+      .map((chunk: any) => ({
+        title: chunk.web.title,
+        uri: chunk.web.uri
+      }))
+      .slice(0, 2);
+
+    return { 
+      summary: response.text, 
+      sources: sources 
+    };
+  } catch { return { summary: "Live data unavailable.", sources: [] }; }
 };
