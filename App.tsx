@@ -13,12 +13,13 @@ const App: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
   const [wallet, setWallet] = useState<UserWallet>({ 
     credits: 500,
+    escrowLinked: false,
     transactions: [
       { id: 't0', type: 'DEPOSIT', amount: 500, description: 'Initial Combat Deposit', timestamp: new Date().toISOString() }
     ]
   });
   
-  const [currentUser] = useState({
+  const [currentUser, setCurrentUser] = useState({
     id: 'user_ghost',
     username: 'Ghost_Rider_4',
     rank: 'Iridescent',
@@ -29,17 +30,32 @@ const App: React.FC = () => {
     ] as LinkedAccount[]
   });
 
-  const addTransaction = (type: Transaction['type'], amount: number, description: string) => {
+  const addTransaction = (type: Transaction['type'], amount: number, description: string, provider?: string) => {
     const newTx: Transaction = {
       id: `tx_${Math.random().toString(36).substr(2, 9)}`,
       type,
       amount,
       description,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      provider
     };
     setWallet(prev => ({
+      ...prev,
       credits: prev.credits + (type === 'ENTRY' || type === 'WITHDRAW' ? -amount : amount),
       transactions: [newTx, ...prev.transactions]
+    }));
+  };
+
+  const linkEscrow = (provider: 'Paystack' | 'Stripe' | 'Crypto') => {
+    setWallet(prev => ({ ...prev, escrowLinked: true, escrowProvider: provider }));
+    setCurrentUser(prev => ({
+      ...prev,
+      linkedAccounts: [...prev.linkedAccounts, {
+        provider: provider === 'Paystack' ? 'Paystack' : 'Activision', // simplistic map for demo
+        username: `Linked_${provider}_Account`,
+        verified: true,
+        linkedAt: new Date().toISOString()
+      } as any]
     }));
   };
 
@@ -47,7 +63,7 @@ const App: React.FC = () => {
     const match = matches.find(m => m.id === matchId);
     if (!match || wallet.credits < match.entryFee) return;
 
-    addTransaction('ENTRY', match.entryFee, `Deployment: ${match.title}`);
+    addTransaction('ENTRY', match.entryFee, `Paystack Escrow Locked: ${match.title}`, wallet.escrowProvider);
     setMatches(prev => prev.map(m => {
       if (m.id === matchId) {
         const playerEntry: Player = {
@@ -91,7 +107,7 @@ const App: React.FC = () => {
       if (m.id === matchId) {
         if (winnerId === currentUser.id && m.status !== MatchStatus.COMPLETED) {
           const prize = m.totalPrizePool * WINNER_PRIZE_PERCENT;
-          addTransaction('WIN', prize, `GSI Verified Victory: ${m.title}`);
+          addTransaction('WIN', prize, `Paystack Verified Payout: ${m.title}`, wallet.escrowProvider);
         }
         return { ...m, status: MatchStatus.COMPLETED, winnerId, verificationReport: report };
       }
@@ -138,7 +154,10 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-8">
             <div className="text-right">
-              <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">Live Balance</span>
+              <div className="flex items-center gap-2 justify-end">
+                {wallet.escrowLinked && <span className="w-2 h-2 bg-lime-500 rounded-full animate-pulse"></span>}
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">Live Balance</span>
+              </div>
               <p className="text-orange-500 font-orbitron font-black text-xl leading-none mt-1">${wallet.credits.toFixed(0)}</p>
             </div>
             <Link to="/profile" className="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center overflow-hidden hover:border-orange-500/50 transition-all shadow-inner ring-1 ring-white/5">
@@ -150,10 +169,10 @@ const App: React.FC = () => {
         <main className="flex-1 container mx-auto px-6 py-10 max-w-7xl">
           <Routes>
             <Route path="/" element={<Dashboard matches={matches} joinMatch={joinMatch} onCreateMatch={createMatch} />} />
-            <Route path="/match/:id" element={<MatchDetails matches={matches} joinMatch={joinMatch} toggleReady={toggleReady} startMatch={startMatch} currentUser={currentUser} walletBalance={wallet.credits} />} />
+            <Route path="/match/:id" element={<MatchDetails matches={matches} joinMatch={joinMatch} toggleReady={toggleReady} startMatch={startMatch} currentUser={currentUser} wallet={wallet} />} />
             <Route path="/live/:id" element={<LiveMatch matches={matches} resolveMatch={resolveMatch} currentUser={currentUser} />} />
             <Route path="/anticheat" element={<AntiCheatDashboard />} />
-            <Route path="/profile" element={<Profile user={currentUser} wallet={wallet} onWithdraw={(amt) => addTransaction('WITHDRAW', amt, 'Wallet Withdrawal')} />} />
+            <Route path="/profile" element={<Profile user={currentUser} wallet={wallet} onLinkEscrow={linkEscrow} onWithdraw={(amt) => addTransaction('WITHDRAW', amt, 'Wallet Withdrawal', wallet.escrowProvider)} />} />
             <Route path="/setup" element={<ServerSetup />} />
           </Routes>
         </main>
@@ -161,7 +180,7 @@ const App: React.FC = () => {
         <footer className="glass-panel py-8 border-t border-white/5">
           <div className="container mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.4em] flex items-center gap-4">
-              <i className="fa-solid fa-shield-halved text-orange-500"></i> GSI ARBITRATION ACTIVE • ISO-27001 SECURE
+              <i className="fa-solid fa-shield-halved text-orange-500"></i> {wallet.escrowProvider?.toUpperCase() || 'GSI'} ARBITRATION ACTIVE • SECURE
             </div>
             <div className="flex gap-6 text-slate-500 text-lg">
               <i className="fa-brands fa-discord hover:text-white transition-colors cursor-pointer"></i>

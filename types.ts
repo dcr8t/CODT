@@ -1,4 +1,3 @@
-
 export enum MatchStatus {
   OPEN = 'OPEN',
   FULL = 'FULL',
@@ -16,6 +15,7 @@ export interface Transaction {
   amount: number;
   description: string;
   timestamp: string;
+  provider?: string;
 }
 
 export interface Player {
@@ -28,7 +28,7 @@ export interface Player {
 }
 
 export interface LinkedAccount {
-  provider: 'Activision' | 'Steam' | 'FaceIT' | 'Discord';
+  provider: 'Activision' | 'Steam' | 'FaceIT' | 'Discord' | 'Paystack';
   username: string;
   id64?: string;
   verified: boolean;
@@ -55,6 +55,8 @@ export interface Match {
 export interface UserWallet {
   credits: number;
   transactions: Transaction[];
+  escrowLinked: boolean;
+  escrowProvider?: 'Paystack' | 'Stripe' | 'Crypto';
 }
 
 export interface TelemetryLog {

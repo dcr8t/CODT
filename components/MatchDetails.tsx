@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Match, MatchStatus } from '../types';
+import { Match, MatchStatus, UserWallet } from '../types';
 import { WINNER_PRIZE_PERCENT } from '../constants';
 
 interface MatchDetailsProps {
@@ -9,10 +9,10 @@ interface MatchDetailsProps {
   toggleReady: (matchId: string) => void;
   startMatch: (id: string) => void;
   currentUser: any;
-  walletBalance: number;
+  wallet: UserWallet;
 }
 
-const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleReady, startMatch, currentUser, walletBalance }) => {
+const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleReady, startMatch, currentUser, wallet }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -25,8 +25,13 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
   const allReady = match.players.length >= 2 && match.players.every(p => p.isReady);
 
   const handleJoinAttempt = () => {
-    if (walletBalance < match.entryFee) {
+    if (wallet.credits < match.entryFee) {
       alert("Insufficient Combat Credits. Top up in Profile.");
+      return;
+    }
+    if (!wallet.escrowLinked) {
+      alert("You must link an Escrow Provider (e.g. Paystack) in your Profile first.");
+      navigate('/profile');
       return;
     }
     setShowConfirm(true);
@@ -97,13 +102,15 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
           <section className={`glass-panel p-8 rounded-[40px] border-orange-500/30 sticky top-28 transition-all ${userInMatch ? 'bg-orange-500/5 animate-pulse-border' : ''}`}>
             
             {userInMatch && (
-              <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-2xl mb-8 flex items-center gap-4">
-                 <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-slate-950">
+              <div className={`border p-4 rounded-2xl mb-8 flex items-center gap-4 ${wallet.escrowProvider === 'Paystack' ? 'bg-[#00BBFF]/10 border-[#00BBFF]/20' : 'bg-orange-500/10 border-orange-500/20'}`}>
+                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${wallet.escrowProvider === 'Paystack' ? 'bg-[#00BBFF]' : 'bg-orange-500'}`}>
                     <i className="fa-solid fa-lock text-sm"></i>
                  </div>
                  <div>
-                    <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Buy-In Secured</p>
-                    <p className="text-[11px] font-bold text-white uppercase font-orbitron">${match.entryFee} Locked in Escrow</p>
+                    <p className={`text-[9px] font-black uppercase tracking-widest ${wallet.escrowProvider === 'Paystack' ? 'text-[#00BBFF]' : 'text-orange-500'}`}>
+                      {wallet.escrowProvider || 'GSI'} Escrow Locked
+                    </p>
+                    <p className="text-[11px] font-bold text-white uppercase font-orbitron">${match.entryFee} Authorized</p>
                  </div>
               </div>
             )}
@@ -144,11 +151,11 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
             
             <div className="mt-8 pt-6 border-t border-white/5">
                <div className="flex items-center gap-3 text-slate-500 mb-2">
-                 <i className="fa-solid fa-lock text-[10px]"></i>
-                 <p className="text-[9px] font-bold uppercase tracking-widest">Escrow Protection Active</p>
+                 <i className="fa-solid fa-shield-check text-[10px]"></i>
+                 <p className="text-[9px] font-bold uppercase tracking-widest">{wallet.escrowProvider || 'GSI'} Protection Active</p>
                </div>
                <p className="text-[8px] text-slate-600 font-bold leading-relaxed uppercase">
-                 GSI Telemetry verifies all match conditions before prize pool distribution. 70% winner-takes-all logic applies.
+                 Entry fee is escrowed via {wallet.escrowProvider || 'platform'}. Payouts are triggered automatically upon GSI match verification.
                </p>
             </div>
           </section>
@@ -163,19 +170,19 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
                 <i className="fa-solid fa-file-invoice-dollar text-orange-500 text-2xl"></i>
              </div>
              <h2 className="text-2xl font-orbitron font-black text-white uppercase italic mb-2">Stake Authorization</h2>
-             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">Confirm deployment to {match.title}</p>
+             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">Deploying via {wallet.escrowProvider || 'Escrow'}</p>
              
              <div className="space-y-3 mb-8">
                <div className="flex justify-between text-xs border-b border-white/5 pb-2">
-                 <span className="text-slate-500 font-bold uppercase">Buy-In Amount</span>
+                 <span className="text-slate-500 font-bold uppercase">Entry Fee</span>
                  <span className="text-white font-black">${match.entryFee}</span>
                </div>
                <div className="flex justify-between text-xs border-b border-white/5 pb-2">
-                 <span className="text-slate-500 font-bold uppercase">Admin Fee (30%)</span>
+                 <span className="text-slate-500 font-bold uppercase">Split Logic (30% Platform)</span>
                  <span className="text-slate-400 font-black">-${(match.entryFee * 0.3).toFixed(2)}</span>
                </div>
                <div className="flex justify-between text-xs pt-2">
-                 <span className="text-orange-500 font-black uppercase tracking-widest">Target Payout (70%)</span>
+                 <span className="text-orange-500 font-black uppercase tracking-widest italic">Winner's Pot (70%)</span>
                  <span className="text-orange-500 font-black">${(match.totalPrizePool * WINNER_PRIZE_PERCENT).toFixed(0)}</span>
                </div>
              </div>
