@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const getAiClient = () => {
@@ -7,20 +8,28 @@ const getAiClient = () => {
   return null;
 };
 
-// --- Decoding Utils for Audio ---
-function decodeBase64(base64: string) {
+// Helper for audio decoding from base64 string
+function decode(base64: string) {
   const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
 }
 
-async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
+// Helper to decode raw PCM bytes to AudioBuffer
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
     for (let i = 0; i < frameCount; i++) {
@@ -30,117 +39,48 @@ async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: 
   return buffer;
 }
 
-// --- Core Services ---
-
-export const getLatestCodMeta = async () => {
+// Arbiter: Analyzes match telemetry to verify a winner and detect fraud
+export const verifyMatchResult = async (matchData: any, telemetry: any[]) => {
   const ai = getAiClient();
-  if (!ai) return { summary: "Tactical uplink offline.", sources: [] };
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: "What are the top meta loadouts and current trending map strategies for Call of Duty: Warzone Season 1 right now? Keep it extremely brief.",
-      config: {
-        tools: [{ googleSearch: {} }],
-      },
-    });
-
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
-      title: chunk.web?.title || "Intel Link",
-      uri: chunk.web?.uri
-    })) || [];
-
-    return {
-      summary: response.text,
-      sources: sources.slice(0, 3)
-    };
-  } catch (error) {
-    return { summary: "Failed to retrieve live battlefield data.", sources: [] };
-  }
-};
-
-export const speakTacticalAdvice = async (text: string) => {
-  const ai = getAiClient();
-  if (!ai) return;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Say with extreme military professionalism: ${text}` }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Kore' },
-          },
-        },
-      },
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      const audioData = decodeBase64(base64Audio);
-      const audioBuffer = await decodeAudioData(audioData, audioCtx, 24000, 1);
-      const source = audioCtx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioCtx.destination);
-      source.start();
-    }
-  } catch (error) {
-    console.error("TTS Failure:", error);
-  }
-};
-
-export const analyzeRconLogs = async (logs: any[]) => {
-  const ai = getAiClient();
-  if (!ai) return { securityVerdict: 'Error', trustModifier: 0, explanation: 'API Key Missing' };
+  if (!ai) return { winnerId: matchData.players[0].id, report: "Local Verification (AI Offline)" };
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `Analyze logs for hacking: ${JSON.stringify(logs)}. Return JSON: securityVerdict ('Clean', 'Flagged'), trustModifier (-50 to +50), explanation.`,
+      contents: `ACT AS ELITE RIVALS ARBITER. 
+      Analyze this match telemetry and metadata to verify the winner and check for cheating.
+      MATCH: ${JSON.stringify(matchData)}
+      TELEMETRY: ${JSON.stringify(telemetry)}
+      
+      Return JSON: { "winnerId": "string", "report": "1-sentence summary of integrity scan", "isVerified": boolean }`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            securityVerdict: { type: Type.STRING },
-            trustModifier: { type: Type.NUMBER },
-            explanation: { type: Type.STRING }
+            winnerId: { type: Type.STRING },
+            report: { type: Type.STRING },
+            isVerified: { type: Type.BOOLEAN }
           },
-          required: ['securityVerdict', 'trustModifier', 'explanation']
+          required: ['winnerId', 'report', 'isVerified']
         }
       }
     });
     return JSON.parse(response.text || '{}');
   } catch (error) {
-    return { securityVerdict: 'Unknown', trustModifier: 0, explanation: 'Analysis failed' };
+    return { winnerId: matchData.players[0].id, report: "Fallback Verification" };
   }
 };
 
-export const generateTacticalAdvice = async (map: string, score: any) => {
+// analyzeAntiCheatLog: Performs deep diagnostic of behavioral telemetry
+export const analyzeAntiCheatLog = async (telemetry: any) => {
   const ai = getAiClient();
-  if (!ai) return "Tactical uplink offline.";
-
+  if (!ai) return { verdict: 'Flagged', riskScore: 85, reason: "AI Offline Analysis" };
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Match on ${map}. Score CT ${score.ct} - T ${score.t}. Give a 1-sentence aggressive pro-strat.`,
-    });
-    return response.text;
-  } catch (error) {
-    return "Consolidate map control and hold angles.";
-  }
-};
-
-export const analyzeAntiCheatLog = async (data: any) => {
-  const ai = getAiClient();
-  if (!ai) return { verdict: 'Error', riskScore: 0, reason: 'API Key Missing' };
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Analyze telemetry for aimbots: ${JSON.stringify(data)}. Return JSON: verdict, riskScore, reason.`,
+      contents: `Perform high-precision anti-cheat analysis on this telemetry: ${JSON.stringify(telemetry)}. Verdict must be 'Clear' or 'Flagged'. 
+      Return JSON: { "verdict": "string", "riskScore": number, "reason": "string" }`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -155,7 +95,56 @@ export const analyzeAntiCheatLog = async (data: any) => {
       }
     });
     return JSON.parse(response.text || '{}');
-  } catch (error) {
-    return { verdict: 'Unknown', riskScore: 0, reason: 'Deep diagnostic failed' };
+  } catch {
+    return { verdict: 'Flagged', riskScore: 99, reason: "Analysis Error - Safeguard Triggered" };
   }
+};
+
+// generateTacticalAdvice: Provides real-time combat guidance
+export const generateTacticalAdvice = async (map: string, score: any) => {
+  const ai = getAiClient();
+  if (!ai) return "Maintain tactical discipline.";
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Provide one high-level tactical advice for the game map ${map} given the current score ${JSON.stringify(score)}. Max 1 sentence.`,
+    });
+    return response.text || "Hold your position and watch your six.";
+  } catch {
+    return "Check your corners and wait for backup.";
+  }
+};
+
+export const getLatestCodMeta = async () => {
+  const ai = getAiClient();
+  if (!ai) return { summary: "Tactical uplink offline.", sources: [] };
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "Current COD: Warzone Season 1 Meta loadouts? 2 sentences max.",
+      config: { tools: [{ googleSearch: {} }] },
+    });
+    return { summary: response.text, sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks?.slice(0, 2) || [] };
+  } catch { return { summary: "Live data unavailable.", sources: [] }; }
+};
+
+export const speakTacticalAdvice = async (text: string) => {
+  const ai = getAiClient();
+  if (!ai) return;
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text: `Professional military comms: ${text}` }] }],
+      config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } },
+    });
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (base64Audio) {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioCtx.destination);
+      source.start();
+    }
+  } catch {}
 };

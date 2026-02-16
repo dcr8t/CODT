@@ -5,16 +5,17 @@ import { UserWallet, LinkedAccount } from '../types';
 interface ProfileProps {
   user: any;
   wallet: UserWallet;
-  onLinkAccount: (provider: LinkedAccount['provider'], username: string) => void;
+  onLinkAccount?: (provider: LinkedAccount['provider'], username: string) => void;
+  onWithdraw: (amount: number) => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, wallet, onLinkAccount }) => {
+const Profile: React.FC<ProfileProps> = ({ user, wallet, onLinkAccount, onWithdraw }) => {
   const [linking, setLinking] = useState<LinkedAccount['provider'] | null>(null);
   const [inputUsername, setInputUsername] = useState('');
 
   const handleLink = (e: React.FormEvent) => {
     e.preventDefault();
-    if (linking) {
+    if (linking && onLinkAccount) {
       onLinkAccount(linking, inputUsername);
       setLinking(null);
       setInputUsername('');
@@ -111,6 +112,12 @@ const Profile: React.FC<ProfileProps> = ({ user, wallet, onLinkAccount }) => {
       <section className="glass-panel rounded-3xl border-white/10 overflow-hidden">
         <div className="p-6 border-b border-white/5 flex justify-between items-center">
           <h3 className="font-orbitron font-bold uppercase tracking-widest text-xs text-slate-500">Financial Records</h3>
+          <button 
+            onClick={() => onWithdraw(wallet.credits)}
+            className="px-4 py-2 bg-orange-500/10 border border-orange-500/30 rounded-full text-[9px] font-black text-orange-500 uppercase hover:bg-orange-500 hover:text-slate-950 transition-all"
+          >
+            Withdraw Credits
+          </button>
         </div>
         <div className="divide-y divide-white/5">
           {wallet.transactions.map((tx, i) => (

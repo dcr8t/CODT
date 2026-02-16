@@ -1,31 +1,21 @@
 
 export enum MatchStatus {
-  LOBBY = 'LOBBY',
-  WARMUP = 'WARMUP',
-  LIVE = 'LIVE',
-  PAUSED = 'PAUSED',
-  VERIFYING = 'VERIFYING',
-  COMPLETED = 'COMPLETED',
   OPEN = 'OPEN',
-  FULL = 'FULL'
+  FULL = 'FULL',
+  READY_CHECK = 'READY_CHECK',
+  LIVE = 'LIVE',
+  VERIFYING = 'VERIFYING',
+  COMPLETED = 'COMPLETED'
 }
 
 export type GameType = 'COD_WARZONE' | 'COD_MW3' | 'CS2';
 
 export interface Transaction {
   id: string;
-  type: 'DEPOSIT' | 'ENTRY' | 'WIN';
+  type: 'DEPOSIT' | 'ENTRY' | 'WIN' | 'WITHDRAW';
   amount: number;
   description: string;
   timestamp: string;
-}
-
-export interface LinkedAccount {
-  provider: 'Steam' | 'Activision' | 'Discord' | 'FaceIT';
-  username: string;
-  id64: string;
-  verified: boolean;
-  linkedAt: string;
 }
 
 export interface Player {
@@ -33,9 +23,16 @@ export interface Player {
   username: string;
   rank: string;
   elo: number;
+  isReady: boolean;
   trustFactor: number;
-  steamId?: string;
-  activisionId?: string;
+}
+
+export interface LinkedAccount {
+  provider: 'Activision' | 'Steam' | 'FaceIT' | 'Discord';
+  username: string;
+  id64?: string;
+  verified: boolean;
+  linkedAt: string;
 }
 
 export interface Match {
@@ -49,10 +46,10 @@ export interface Match {
   players: Player[];
   maxPlayers: number;
   status: MatchStatus;
-  score: { teamA: number; teamB: number }; // Generalized score
-  serverIp?: string;
+  score: { teamA: number; teamB: number };
   startTime: string;
   winnerId?: string;
+  verificationReport?: string;
 }
 
 export interface UserWallet {
