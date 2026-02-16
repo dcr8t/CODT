@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Match, MatchStatus, GameType } from '../types';
+import { getLatestCodMeta } from '../services/geminiService';
 
 interface DashboardProps {
   matches: Match[];
@@ -12,13 +13,18 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, joinMatch, onCreateMatch
   const [showHostModal, setShowHostModal] = useState(false);
   const [filter, setFilter] = useState<GameType | 'ALL'>('ALL');
   const [newMatch, setNewMatch] = useState({ title: '', gameType: 'COD_WARZONE' as GameType, map: 'Urzikstan', entryFee: 25 });
+  const [intel, setIntel] = useState<{ summary: string; sources: any[] }>({ summary: "Scrutinizing battlefield meta...", sources: [] });
+
+  useEffect(() => {
+    getLatestCodMeta().then(setIntel);
+  }, []);
 
   const filteredMatches = filter === 'ALL' ? matches : matches.filter(m => m.gameType === filter);
 
   return (
     <div className="space-y-12">
       {/* Tactical Hero */}
-      <section className="relative h-[400px] md:h-[500px] rounded-[40px] overflow-hidden flex flex-col items-center justify-center text-center px-6 border border-white/10 shadow-2xl">
+      <section className="relative h-[400px] md:h-[500px] rounded-[40px] overflow-hidden flex flex-col items-center justify-center text-center px-6 border border-white/10 shadow-2xl animate-pulse-border">
         <img 
           src="https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&q=80&w=1200" 
           className="absolute inset-0 w-full h-full object-cover opacity-20" 
@@ -27,17 +33,17 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, joinMatch, onCreateMatch
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent"></div>
         
         <div className="relative z-10 space-y-6 max-w-3xl">
-          <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full animate-pulse">
-            <span className="w-1.5 h-1.5 bg-orange-500 rounded-full shadow-[0_0_8px_#f97316]"></span>
-            <span className="text-[9px] font-black text-orange-500 uppercase tracking-[0.2em]">Deployment Authorized: High-Stakes COD Season 1</span>
+          <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full">
+            <span className="w-1.5 h-1.5 bg-orange-500 rounded-full shadow-[0_0_8px_#f97316] animate-ping"></span>
+            <span className="text-[9px] font-black text-orange-500 uppercase tracking-[0.2em]">Deployment Authorized: Season 1 Active</span>
           </div>
           
           <h1 className="text-5xl md:text-7xl font-orbitron font-black leading-none tracking-tighter text-white uppercase italic">
-            STAKE YOUR <span className="text-orange-500">CLAIM.</span>
+            STAKE YOUR <span className="text-orange-500 glow-orange">CLAIM.</span>
           </h1>
           
           <p className="text-slate-400 text-base md:text-lg font-medium max-w-xl mx-auto leading-relaxed">
-            The ultimate competitive arena for <span className="text-white font-bold">Call of Duty</span>. Enter the lobby, dominate the map, and secure your <span className="text-orange-500 font-bold">70% payout</span> automatically.
+            Dominate the <span className="text-white font-bold">Call of Duty</span> arena. Secure your <span className="text-orange-500 font-bold">70% payout</span> automatically via verified cloud telemetry.
           </p>
           
           <div className="flex flex-wrap justify-center gap-4 pt-4">
@@ -51,24 +57,35 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, joinMatch, onCreateMatch
         </div>
       </section>
 
-      {/* Stats/Info Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { icon: 'fa-wallet', title: 'Buy In', text: 'Secure entry with Combat Credits.', color: 'text-orange-500' },
-          { icon: 'fa-user-shield', title: 'Ricochet-X', text: 'AI-monitored integrity protocols.', color: 'text-lime-500' },
-          { icon: 'fa-trophy', title: 'Winner Takes 70%', text: 'Automatic payout distribution.', color: 'text-orange-500' },
-          { icon: 'fa-clock', title: 'Instant Finish', text: 'Results verified in < 60s.', color: 'text-blue-500' }
-        ].map((item, i) => (
-          <div key={i} className="glass-panel p-6 rounded-3xl border-white/5 flex gap-4 items-center">
-            <div className={`w-12 h-12 shrink-0 bg-white/5 rounded-2xl flex items-center justify-center ${item.color} text-xl`}>
-              <i className={`fa-solid ${item.icon}`}></i>
-            </div>
-            <div>
-              <h3 className="font-orbitron font-black text-white text-[10px] uppercase mb-1">{item.title}</h3>
-              <p className="text-[11px] text-slate-500 leading-tight font-medium">{item.text}</p>
-            </div>
+      {/* Grounded Meta Intel Feed */}
+      <section className="glass-panel p-8 rounded-[40px] border-orange-500/10 bg-gradient-to-r from-orange-500/5 to-transparent flex flex-col md:flex-row gap-8 items-center">
+        <div className="flex-1 space-y-4">
+          <div className="flex items-center gap-3">
+             <i className="fa-solid fa-satellite-dish text-orange-500 text-xl"></i>
+             <h2 className="font-orbitron font-black text-white uppercase tracking-widest text-sm">Warzone Intel Link</h2>
           </div>
-        ))}
+          <p className="text-sm text-slate-400 leading-relaxed font-medium">
+            {intel.summary}
+          </p>
+          <div className="flex gap-3">
+            {intel.sources.map((s, i) => (
+              <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-[9px] font-black text-orange-500 uppercase border border-orange-500/30 px-3 py-1 rounded-full hover:bg-orange-500 hover:text-white transition-all">
+                {s.title}
+              </a>
+            ))}
+          </div>
+        </div>
+        <div className="hidden lg:block w-[1px] h-20 bg-white/5"></div>
+        <div className="flex gap-10">
+          <div className="text-center">
+             <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Live Lobbies</p>
+             <p className="text-2xl font-orbitron font-black text-white">{matches.length}</p>
+          </div>
+          <div className="text-center">
+             <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Daily Vol.</p>
+             <p className="text-2xl font-orbitron font-black text-orange-500">$24.8K</p>
+          </div>
+        </div>
       </section>
 
       {/* Lobbies Filter */}

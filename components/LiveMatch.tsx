@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Match, MatchStatus, TelemetryLog } from '../types';
-import { generateTacticalAdvice } from '../services/geminiService';
+import { generateTacticalAdvice, speakTacticalAdvice } from '../services/geminiService';
 
 interface LiveMatchProps {
   matches: Match[];
@@ -17,6 +17,7 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
   const [statusText, setStatusText] = useState('SYNCING RICON-6 TELEMETRY...');
   const [tacticalIntel, setTacticalIntel] = useState('Analyzing battlefield dynamics...');
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const match = matches.find(m => m.id === id);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -24,14 +25,14 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
     if (!match || isGameOver) return;
 
     const interval = setInterval(() => {
-      const isTeamAWin = Math.random() > 0.45; // Weighted slightly for simulation
+      const isTeamAWin = Math.random() > 0.45; 
       setScore(prev => {
         const nextScore = {
-          teamA: isTeamAWin ? prev.teamA + (match.gameType.includes('WARZONE') ? 1 : 1) : prev.teamA,
-          teamB: !isTeamAWin ? prev.teamB + (match.gameType.includes('WARZONE') ? 1 : 1) : prev.teamB
+          teamA: isTeamAWin ? prev.teamA + 1 : prev.teamA,
+          teamB: !isTeamAWin ? prev.teamB + 1 : prev.teamB
         };
         
-        const limit = match.gameType.includes('WARZONE') ? 30 : 6; // S&D is 6 rounds to win
+        const limit = match.gameType.includes('WARZONE') ? 30 : 6; 
         if (nextScore.teamA >= limit || nextScore.teamB >= limit) {
           setIsGameOver(true);
           setTimeout(() => handleMatchCompletion(nextScore), 4000);
@@ -43,7 +44,7 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
       const newLog: TelemetryLog = {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         event: match.gameType.includes('WARZONE') ? 'OPERATOR_ELIMINATED' : 'S&D_ROUND_VERIFIED',
-        data: isTeamAWin ? 'Ghost_Rider_4 confirmed kill via longbow' : 'Opponent squad secured objective',
+        data: isTeamAWin ? `${currentUser.username} confirmed long-range elimination` : 'Opposition squad secured tactical site',
         type: 'GAME_EVENT'
       };
       setLogs(prev => [...prev.slice(-15), newLog]);
@@ -60,7 +61,15 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
 
   const handleMatchCompletion = (finalScore: {teamA: number, teamB: number}) => {
     resolveMatch(match!.id, currentUser.id); 
-    // Navigation handled by user click on victory screen usually, but here automated for flow
+  };
+
+  const refreshTacticalIntel = async () => {
+    setIsSpeaking(true);
+    setTacticalIntel('Recalibrating for optimal strategy...');
+    const advice = await generateTacticalAdvice(match!.map, {ct: score.teamA, t: score.teamB});
+    setTacticalIntel(advice);
+    await speakTacticalAdvice(advice);
+    setIsSpeaking(false);
   };
 
   if (!match) return <div className="text-center py-20 font-orbitron text-slate-500">LOBBY SIGNAL LOST</div>;
@@ -69,7 +78,7 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
     <div className="max-w-7xl mx-auto space-y-6">
       
       {/* Tactical HUD Header */}
-      <section className="glass-panel p-8 md:p-12 rounded-[40px] border-orange-500/20 relative overflow-hidden bg-slate-900/40 shadow-2xl">
+      <section className="glass-panel p-8 md:p-12 rounded-[40px] border-orange-500/20 relative overflow-hidden bg-slate-900/40 shadow-2xl animate-pulse-border">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-orange-500 to-transparent"></div>
         
         <div className="flex justify-between items-center mb-10">
@@ -137,23 +146,23 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
 
         {/* Tactical Info Sidebar */}
         <aside className="space-y-6">
-          <div className="glass-panel p-8 rounded-[30px] border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-transparent">
+          <div className="glass-panel p-8 rounded-[30px] border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-transparent relative">
+             {isSpeaking && <div className="absolute top-4 right-4 text-orange-500 animate-pulse"><i className="fa-solid fa-volume-high"></i></div>}
              <div className="flex items-center gap-3 mb-6">
-               <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-500">
+               <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-500 shadow-inner">
                  <i className="fa-solid fa-robot"></i>
                </div>
-               <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Gemini Tactical Advisor</h3>
+               <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Command Center Uplink</h3>
              </div>
-             <p className="text-sm text-slate-400 italic mb-8 leading-relaxed font-bold">"{tacticalIntel}"</p>
+             <p className="text-sm text-slate-300 italic mb-8 leading-relaxed font-semibold border-l-2 border-orange-500/30 pl-4">
+               "{tacticalIntel}"
+             </p>
              <button 
-                onClick={async () => {
-                  setTacticalIntel('Recalibrating for final circle...');
-                  const advice = await generateTacticalAdvice(match.map, {ct: score.teamA, t: score.teamB});
-                  setTacticalIntel(advice);
-                }}
-                className="w-full py-4 bg-orange-500 text-slate-950 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/10 hover:bg-white transition-all"
+                onClick={refreshTacticalIntel}
+                disabled={isSpeaking}
+                className="w-full py-4 bg-orange-500 text-slate-950 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 hover:bg-white transition-all disabled:opacity-50"
               >
-                Refresh Strategy
+                {isSpeaking ? 'TRANSMITTING VOICE...' : 'REQUEST TACTICAL OVERRIDE'}
              </button>
           </div>
 
@@ -164,7 +173,7 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
                 <p className="text-4xl font-orbitron font-black text-lime-400">${(match.totalPrizePool * 0.7).toFixed(0)}</p>
              </div>
              <p className="text-[9px] text-slate-500 font-bold leading-relaxed italic text-center uppercase">
-               Funds released instantly upon GSI match confirmation.
+               GSI Confirmed • Ricochet-X Monitor Active
              </p>
           </div>
         </aside>
@@ -178,7 +187,7 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
             </div>
             <h2 className="text-8xl font-orbitron font-black text-white tracking-tighter uppercase italic">VICTORY</h2>
             <div className="max-w-md mx-auto space-y-4">
-              <p className="text-xs font-black text-orange-500 uppercase tracking-[0.5em]">Verifying Eliminaton Telemetry...</p>
+              <p className="text-xs font-black text-orange-500 uppercase tracking-[0.5em]">GSI Verifying Eliminaton Telemetry...</p>
               <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
                 <div className="h-full bg-orange-500 animate-[loading_4s_ease-in-out]"></div>
               </div>
@@ -187,7 +196,7 @@ const LiveMatch: React.FC<LiveMatchProps> = ({ matches, resolveMatch, currentUse
               onClick={() => navigate('/profile')}
               className="px-12 py-5 bg-white text-slate-950 rounded-xl font-orbitron font-black text-xs uppercase hover:bg-orange-500 hover:text-white transition-all shadow-2xl"
             >
-              Claim Earnings & Exit
+              Transfer $ to Wallet
             </button>
           </div>
         </div>
