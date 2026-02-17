@@ -23,8 +23,12 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
   const userInMatch = match.players.find(p => p.id === currentUser.id);
   const isReady = userInMatch?.isReady || false;
   const allReady = match.players.length >= 2 && match.players.every(p => p.isReady);
-  const currentPrizePool = match.players.length * match.entryFee;
-  const winnerShare = currentPrizePool * WINNER_PRIZE_PERCENT;
+  
+  // Dynamic Math: Show what the prize is RIGHT NOW vs what it will be
+  const currentTotalPool = match.totalPrizePool;
+  const currentWinnerShare = currentTotalPool * WINNER_PRIZE_PERCENT;
+  const projectedFullPool = match.entryFee * match.maxPlayers;
+  const projectedWinnerShare = projectedFullPool * WINNER_PRIZE_PERCENT;
 
   const handleJoinAttempt = () => {
     if (wallet.credits < match.entryFee) {
@@ -44,7 +48,6 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
         <div className="lg:col-span-2 space-y-6">
-          {/* Mission Header */}
           <header className="glass-panel p-10 rounded-[40px] border-orange-500/20 relative overflow-hidden group">
             <div className="absolute -top-20 -right-20 w-64 h-64 bg-orange-500/10 blur-[100px] rounded-full group-hover:bg-orange-500/20 transition-all duration-1000"></div>
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -55,30 +58,35 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
               </div>
               <div className="flex gap-4">
                 <div className="text-center bg-black/60 px-6 py-4 rounded-3xl border border-white/5">
-                   <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Buy-In</p>
+                   <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Entry Stake</p>
                    <p className="text-2xl font-orbitron font-black text-white">${match.entryFee}</p>
                 </div>
                 <div className="text-center bg-orange-500/10 px-6 py-4 rounded-3xl border border-orange-500/30 shadow-[0_0_30px_rgba(249,115,22,0.1)]">
-                   <p className="text-[9px] font-bold text-orange-500 uppercase mb-1">Win Payout (70%)</p>
-                   <p className="text-2xl font-orbitron font-black text-orange-500">${winnerShare.toFixed(0)}</p>
+                   <p className="text-[9px] font-bold text-orange-500 uppercase mb-1">Live Winner Share (70%)</p>
+                   <p className="text-2xl font-orbitron font-black text-orange-500">${currentWinnerShare.toFixed(0)}</p>
                 </div>
               </div>
             </div>
           </header>
 
-          {/* Player Roster */}
           <section className="glass-panel p-8 rounded-[30px]">
             <div className="flex justify-between items-center mb-8">
               <h3 className="font-orbitron font-black text-xs text-white uppercase tracking-widest flex items-center gap-3">
                 <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
                 Deployment Manifest ({match.players.length}/{match.maxPlayers})
               </h3>
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">GSI Link: Active</span>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-[8px] font-black text-slate-500 uppercase">Max Potential Pot</p>
+                  <p className="text-xs font-orbitron font-bold text-white">${projectedWinnerShare.toFixed(0)}</p>
+                </div>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest border border-white/5 px-3 py-1 rounded-full">GSI-v4 Active</span>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {match.players.map((p) => (
-                <div key={p.id} className={`flex items-center justify-between p-5 rounded-2xl border transition-all duration-500 ${p.isReady ? 'bg-lime-500/10 border-lime-500/30' : 'bg-white/5 border-white/5'}`}>
+                <div key={p.id} className={`flex items-center justify-between p-5 rounded-2xl border transition-all duration-500 ${p.isReady ? 'bg-lime-500/10 border-lime-500/30 shadow-[0_0_15px_rgba(132,204,22,0.05)]' : 'bg-white/5 border-white/5'}`}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-slate-900 rounded-xl border border-white/10 flex items-center justify-center overflow-hidden">
                       <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${p.username}`} alt="avatar" />
@@ -94,34 +102,33 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
                       <i className="fa-solid fa-circle-check text-lime-500 text-xs"></i>
                     </div>
                   ) : (
-                    <span className="text-[8px] font-black text-slate-600 uppercase border border-white/10 px-3 py-1 rounded-full">In Preparation</span>
+                    <span className="text-[8px] font-black text-slate-600 uppercase border border-white/10 px-3 py-1 rounded-full">In Staging</span>
                   )}
                 </div>
               ))}
               {match.players.length === 0 && (
                 <div className="col-span-2 py-20 text-center space-y-4 opacity-40">
                   <i className="fa-solid fa-satellite-dish text-4xl text-slate-600 animate-bounce"></i>
-                  <p className="text-[10px] font-black uppercase tracking-[0.5em]">Scanning for Operators...</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.5em]">Awaiting Combatants...</p>
                 </div>
               )}
             </div>
           </section>
         </div>
 
-        {/* Sidebar Action */}
         <aside className="space-y-6">
           <section className={`glass-panel p-8 rounded-[40px] border-orange-500/30 sticky top-28 transition-all ${userInMatch ? 'bg-orange-500/5' : ''}`}>
             
             {userInMatch && (
               <div className={`border p-5 rounded-3xl mb-8 flex items-center gap-4 animate-in zoom-in ${wallet.escrowProvider === 'Paystack' ? 'bg-[#00BBFF]/10 border-[#00BBFF]/30' : 'bg-orange-500/10 border-orange-500/30'}`}>
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg ${wallet.escrowProvider === 'Paystack' ? 'bg-[#00BBFF] shadow-[#00BBFF]/20' : 'bg-orange-500 shadow-orange-500/20'}`}>
-                    <i className="fa-solid fa-vault text-lg"></i>
+                    <i className="fa-solid fa-lock text-lg"></i>
                  </div>
                  <div>
                     <p className={`text-[10px] font-black uppercase tracking-widest ${wallet.escrowProvider === 'Paystack' ? 'text-[#00BBFF]' : 'text-orange-500'}`}>
-                      {wallet.escrowProvider} Bridge Active
+                      {wallet.escrowProvider} Split Locked
                     </p>
-                    <p className="text-xs font-bold text-white uppercase font-orbitron">Locked: ${match.entryFee}.00</p>
+                    <p className="text-xs font-bold text-white uppercase font-orbitron">Stake: ${match.entryFee}.00</p>
                  </div>
               </div>
             )}
@@ -164,10 +171,10 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
             <div className="mt-10 pt-8 border-t border-white/10">
                <div className="flex items-center gap-3 text-slate-500 mb-4">
                  <i className="fa-solid fa-fingerprint text-orange-500"></i>
-                 <p className="text-[10px] font-black uppercase tracking-widest">Paystack Sub-Escrow Verified</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest">Paystack Settlement Active</p>
                </div>
                <p className="text-[9px] text-slate-600 font-bold leading-relaxed uppercase italic">
-                 70% Payout handled via split settlement. Gemini-X Arbiter executes transaction script upon GSI victory confirmation.
+                 The winner takes 70% of the accumulated pool. Elite Rivals keeps a 30% platform fee for GSI maintenance and server costs.
                </p>
             </div>
           </section>
@@ -179,31 +186,31 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/98 backdrop-blur-3xl p-6">
           <div className="glass-panel w-full max-w-md p-10 rounded-[50px] border-orange-500/40 text-center animate-in zoom-in duration-500">
              <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(249,115,22,0.3)] border border-orange-400/50">
-                <i className="fa-solid fa-shield-halved text-slate-950 text-3xl"></i>
+                <i className="fa-solid fa-file-invoice-dollar text-slate-950 text-3xl"></i>
              </div>
-             <h2 className="text-3xl font-orbitron font-black text-white uppercase italic mb-2 tracking-tighter">Stake Authorized</h2>
-             <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mb-10">Gateway: {wallet.escrowProvider}</p>
+             <h2 className="text-3xl font-orbitron font-black text-white uppercase italic mb-2 tracking-tighter">Confirm Buy-In</h2>
+             <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mb-10">Escrow Provider: {wallet.escrowProvider}</p>
              
              <div className="space-y-4 mb-10 bg-black/40 p-6 rounded-3xl border border-white/5">
                <div className="flex justify-between items-center text-xs">
-                 <span className="text-slate-500 font-black uppercase">Initial Stake</span>
+                 <span className="text-slate-500 font-black uppercase">Your Total Stake</span>
                  <span className="text-white font-orbitron font-black">${match.entryFee}.00</span>
                </div>
                <div className="h-[1px] bg-white/5"></div>
                <div className="flex justify-between items-center text-xs">
-                 <span className="text-slate-500 font-black uppercase">Service Charge (30%)</span>
+                 <span className="text-slate-500 font-black uppercase">Service Tax (30%)</span>
                  <span className="text-slate-600 font-black">-${(match.entryFee * 0.3).toFixed(2)}</span>
                </div>
                <div className="h-[1px] bg-white/5"></div>
                <div className="flex justify-between items-center text-sm pt-2">
-                 <span className="text-orange-500 font-black uppercase tracking-widest">Pot Contribution</span>
+                 <span className="text-orange-500 font-black uppercase tracking-widest">Your Prize Contribution</span>
                  <span className="text-orange-500 font-orbitron font-black">${(match.entryFee * 0.7).toFixed(2)}</span>
                </div>
              </div>
 
              <div className="flex gap-4">
-                <button onClick={() => setShowConfirm(false)} className="flex-1 py-5 bg-slate-900 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-white">Abort</button>
-                <button onClick={() => { joinMatch(match.id); setShowConfirm(false); }} className="flex-1 py-5 bg-orange-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white shadow-xl shadow-orange-500/20">Authorize Payout Logic</button>
+                <button onClick={() => setShowConfirm(false)} className="flex-1 py-5 bg-slate-900 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-white">Cancel</button>
+                <button onClick={() => { joinMatch(match.id); setShowConfirm(false); }} className="flex-1 py-5 bg-orange-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white shadow-xl">Authorize Split</button>
              </div>
           </div>
         </div>

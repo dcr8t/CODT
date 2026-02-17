@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Rivals | Pro COD Stakes</title>
+    <title>Elite Rivals | Pro COD Arena</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -12,7 +12,7 @@
         :root {
             --neon-orange: #f97316;
             --dark-bg: #020617;
-            --paystack-blue: #00BBFF;
+            --nowpayments-green: #27d05e;
         }
 
         body {
@@ -36,7 +36,7 @@
             z-index: 9999;
             background-size: 100% 2px, 3px 100%;
             pointer-events: none;
-            opacity: 0.15;
+            opacity: 0.1;
         }
 
         .glass-panel {
@@ -49,14 +49,14 @@
             background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
         }
 
-        @keyframes pulse-orange {
-            0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.2); }
-            50% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.5); }
-            100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.2); }
+        @keyframes pulse-border {
+            0% { border-color: rgba(249, 115, 22, 0.1); }
+            50% { border-color: rgba(249, 115, 22, 0.5); }
+            100% { border-color: rgba(249, 115, 22, 0.1); }
         }
 
-        .animate-payout-ready {
-            animation: pulse-orange 2s infinite;
+        .animate-pulse-border {
+            animation: pulse-border 2s infinite;
         }
 
         ::-webkit-scrollbar { width: 4px; }
@@ -66,13 +66,13 @@
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
-    "vite": "https://esm.sh/vite@^7.3.1"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4"
   }
 }
 </script>
