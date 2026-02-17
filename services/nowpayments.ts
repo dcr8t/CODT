@@ -8,16 +8,12 @@ export interface NowPaymentsInvoiceOptions {
 }
 
 export const createInvoice = async (options: NowPaymentsInvoiceOptions) => {
-  const apiKey = process.env.NOWPAYMENTS_API_KEY;
+  // SECURITY: Call our own serverless endpoint.
+  // We do NOT access process.env.NOWPAYMENTS_API_KEY here anymore.
   
-  if (!apiKey) {
-    throw new Error("NOWPAYMENTS_API_KEY is missing in environment variables.");
-  }
-
-  const response = await fetch('https://api.nowpayments.io/v1/invoice', {
+  const response = await fetch('/api/create-payment', {
     method: 'POST',
     headers: {
-      'x-api-key': apiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -29,21 +25,21 @@ export const createInvoice = async (options: NowPaymentsInvoiceOptions) => {
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.message || "Failed to create NOWPayments invoice.");
+    throw new Error(errorData.message || "Failed to create invoice via secure bridge.");
   }
 
   return await response.json();
 };
 
 export const getPaymentStatus = async (paymentId: string) => {
-  const apiKey = process.env.NOWPAYMENTS_API_KEY;
-  
-  const response = await fetch(`https://api.nowpayments.io/v1/payment/${paymentId}`, {
+  // SECURITY: Call our own serverless endpoint.
+  const response = await fetch(`/api/payment-status?paymentId=${paymentId}`, {
     method: 'GET',
-    headers: {
-      'x-api-key': apiKey,
-    },
   });
+
+  if (!response.ok) {
+    throw new Error("Unable to verify payment status.");
+  }
 
   return await response.json();
 };
