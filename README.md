@@ -1,39 +1,34 @@
 # 🚀 Elite Rivals: Production Deployment (Crypto Core)
 
-Your pro-grade gaming arena is ready for revenue generation via NOWPayments.io.
+## Phase 1: Deployment
+1. **Push to GitHub**: Commit all files.
+2. **Import to Vercel**: Create a new project from your repo.
+3. **Environment Variables**:
+   - `API_KEY`: Your Google Gemini API Key.
+   - `NOWPAYMENTS_API_KEY`: Your NOWPayments API Key.
+4. **Deploy**: Vercel will build the frontend and deploy the `/api` serverless functions.
 
-### ⚠️ IMPORTANT: Local Development
-Because we have moved payment logic to secure serverless functions (`/api`), the standard `npm run dev` (Vite) will not handle payment requests locally.
+## Phase 2: Database Setup (Supabase)
+Currently, the app uses local storage for demo purposes. To go live:
 
-**To run locally with full payment functionality:**
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run: `vercel dev`
+1. Create a project at [Supabase.com](https://supabase.com).
+2. Go to the **SQL Editor** in your Supabase dashboard.
+3. Copy the contents of `db/schema.sql` and run it.
+4. This creates your User Profiles, Wallet Ledger, and Transaction History tables.
 
-### 1. Push to GitHub
-Upload all project files to a new repository on your GitHub account.
+## Phase 3: The Payment Loop
+To automatically credit users when they pay crypto:
 
-### 2. Connect Vercel
-1. Log in to [Vercel.com](https://vercel.com).
-2. Click **"Add New"** > **"Project"**.
-3. Import your GitHub repository.
+1. **Backend**: You need a Webhook Listener. 
+2. **NOWPayments**: Set your "IPN Callback URL" to `https://your-app.vercel.app/api/webhook`.
+3. **Logic**: When NOWPayments sends `payment_status: "finished"`, your webhook should run an SQL update:
+   ```sql
+   UPDATE wallets SET balance = balance + :amount WHERE user_id = :user;
+   ```
 
-### 3. Add Production Environment Variables (CRITICAL)
-Before clicking deploy, add these two variables in the **"Environment Variables"** section.
-
-1. **API_KEY**:
-   - **Value**: `[Your Gemini API Key]` (Required for match arbitration and anti-cheat)
-2. **NOWPAYMENTS_API_KEY**:
-   - **Value**: `[Your NOWPayments.io API Key]` (Found in your NOWPayments dashboard settings)
-
-### 4. Deploy!
-Click **"Deploy"**. Your application will be live at a public URL.
-
----
-
-### Technical Architecture:
-- **70/30 Split**: The frontend logic enforces a strict 70% winner payout.
-- **AI Arbiter**: Gemini-X Pro audits every match via GSI telemetry.
-- **Secure Payments**: Serverless functions in `/api` handle NOWPayments transactions, ensuring your API key is never exposed to the client.
-- **Vite Bridge**: A custom `vite.config.ts` shim that allows the use of standard `process.env` naming conventions for SDK compatibility.
-
-**Note**: For production security, ensure you set up an IPN (Instant Payment Notification) listener on a backend to automatically credit user accounts upon blockchain confirmation. This UI currently tracks the invoice initialization.
+## Architecture
+- **Frontend**: React + Vite (clientside).
+- **Backend**: Vercel Functions (`/api`).
+- **AI**: Gemini Pro (Arbitration) + Flash (Anti-Cheat).
+- **Database**: PostgreSQL (Supabase schema provided).
+- **Payments**: NOWPayments (Crypto).
