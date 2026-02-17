@@ -8,7 +8,7 @@ export interface NowPaymentsInvoiceOptions {
 }
 
 export const createInvoice = async (options: NowPaymentsInvoiceOptions) => {
-  const apiKey = (process.env as any).NOWPAYMENTS_API_KEY;
+  const apiKey = process.env.NOWPAYMENTS_API_KEY;
   
   if (!apiKey) {
     throw new Error("NOWPAYMENTS_API_KEY is missing in environment variables.");
@@ -36,7 +36,7 @@ export const createInvoice = async (options: NowPaymentsInvoiceOptions) => {
 };
 
 export const getPaymentStatus = async (paymentId: string) => {
-  const apiKey = (process.env as any).NOWPAYMENTS_API_KEY;
+  const apiKey = process.env.NOWPAYMENTS_API_KEY;
   
   const response = await fetch(`https://api.nowpayments.io/v1/payment/${paymentId}`, {
     method: 'GET',

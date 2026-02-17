@@ -1,43 +1,8 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-
-// Initialize AI client helper following @google/genai guidelines
-const getAiClient = () => {
-  if (process.env.API_KEY) {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
-  }
-  return null;
-};
-
-// Raw PCM Audio Decoding for Tactical Comms
-function decode(base64: string) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-
-// Improved audio decoding following PCM raw stream standards from guidelines
-async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number = 1): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
-  }
-  return buffer;
-}
 
 // ARBITER: The final judge of 70% payouts
 export const verifyMatchResult = async (matchData: any, telemetry: any[]) => {
-  const ai = getAiClient();
-  if (!ai) return { winnerId: matchData.players[0]?.id, report: "Local Fallback (AI Connection Lost)", isVerified: false };
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
     const response = await ai.models.generateContent({
@@ -76,8 +41,7 @@ export const verifyMatchResult = async (matchData: any, telemetry: any[]) => {
 
 // AUDITOR: Security check for Paystack withdrawals
 export const authorizeWithdrawal = async (amount: number, history: any[]) => {
-  const ai = getAiClient();
-  if (!ai) return { authorized: true, reason: "Security Offline - Internal bypass" };
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
     const response = await ai.models.generateContent({
@@ -107,8 +71,7 @@ export const authorizeWithdrawal = async (amount: number, history: any[]) => {
 
 // RICHOCHET-X: AI-driven anti-cheat diagnostics
 export const analyzeAntiCheatLog = async (data: any) => {
-  const ai = getAiClient();
-  if (!ai) return { verdict: 'Clean', riskScore: 10, reason: "Bypassed - Local node offline" };
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
     const response = await ai.models.generateContent({
@@ -137,8 +100,7 @@ export const analyzeAntiCheatLog = async (data: any) => {
 };
 
 export const generateTacticalAdvice = async (map: string, score: any) => {
-  const ai = getAiClient();
-  if (!ai) return "Eyes up. Stay sharp.";
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -149,8 +111,7 @@ export const generateTacticalAdvice = async (map: string, score: any) => {
 };
 
 export const speakTacticalAdvice = async (text: string) => {
-  const ai = getAiClient();
-  if (!ai) return;
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
@@ -173,8 +134,7 @@ export const speakTacticalAdvice = async (text: string) => {
 };
 
 export const getLatestCodMeta = async () => {
-  const ai = getAiClient();
-  if (!ai) return { summary: "Tactical uplink offline.", sources: [] };
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -182,7 +142,6 @@ export const getLatestCodMeta = async () => {
       config: { tools: [{ googleSearch: {} }] },
     });
     
-    // Extract search grounding URLs as required by guidelines
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const sources = groundingChunks
       .filter((chunk: any) => chunk.web)
@@ -198,3 +157,27 @@ export const getLatestCodMeta = async () => {
     };
   } catch { return { summary: "Live data unavailable.", sources: [] }; }
 };
+
+// Raw PCM Audio Decoding Helpers
+function decode(base64: string) {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number = 1): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
