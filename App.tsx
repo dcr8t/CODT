@@ -1,106 +1,136 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
-import { INITIAL_MATCHES, WINNER_PRIZE_PERCENT } from './constants';
-import { Match, MatchStatus, UserWallet, Transaction, LinkedAccount, Player } from './types';
+import { supabase } from './lib/supabase';
+import { Match, MatchStatus, UserWallet, Transaction } from './types';
 import Dashboard from './components/Dashboard';
 import MatchDetails from './components/MatchDetails';
 import Profile from './components/Profile';
 import AntiCheatDashboard from './components/AntiCheatDashboard';
 import LiveMatch from './components/LiveMatch';
 import ServerSetup from './components/ServerSetup';
+import Auth from './components/Auth';
 
 const App: React.FC = () => {
-  const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
-  const [wallet, setWallet] = useState<UserWallet>(() => {
-    const saved = localStorage.getItem('er_wallet');
-    return saved ? JSON.parse(saved) : { 
-      credits: 0,
-      escrowLinked: false,
-      transactions: []
-    };
-  });
-  
-  const [currentUser, setCurrentUser] = useState({
-    id: 'user_operator_1',
-    email: 'competitor@eliterivals.pro',
-    username: 'Ghost_Operative',
-    rank: 'Master',
-    elo: 15400,
-    trustFactor: 95,
-    linkedAccounts: [] as LinkedAccount[]
-  });
+  const [session, setSession] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [wallet, setWallet] = useState<UserWallet>({ credits: 0, transactions: [], escrowLinked: true });
+  const [matches, setMatches] = useState<Match[]>([]);
 
+  // 1. Auth Listener
   useEffect(() => {
-    localStorage.setItem('er_wallet', JSON.stringify(wallet));
-  }, [wallet]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) fetchUserData(session.user.id);
+    });
 
-  const addTransaction = (type: Transaction['type'], amount: number, description: string, provider?: string) => {
-    const newTx: Transaction = {
-      id: `NP-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      type,
-      amount,
-      description,
-      timestamp: new Date().toISOString(),
-      provider
-    };
-    setWallet(prev => ({
-      ...prev,
-      credits: prev.credits + (type === 'ENTRY' || type === 'WITHDRAW' ? -amount : amount),
-      transactions: [newTx, ...prev.transactions]
-    }));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) fetchUserData(session.user.id);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 2. Fetch User & Wallet
+  const fetchUserData = async (userId: string) => {
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    const { data: walletData } = await supabase.from('wallets').select('*').eq('user_id', userId).single();
+    const { data: txs } = await supabase.from('transactions').select('*').eq('wallet_id', walletData?.id).order('created_at', { ascending: false });
+
+    setUserProfile(profile);
+    if (walletData) {
+      setWallet({
+        credits: walletData.balance,
+        transactions: txs || [],
+        escrowLinked: true
+      });
+    }
   };
 
-  const depositFunds = (amount: number, reference: string) => {
-    addTransaction('DEPOSIT', amount, `Crypto Credit: ${reference}`, 'NOWPayments');
-  };
-
-  const joinMatch = (matchId: string) => {
-    const match = matches.find(m => m.id === matchId);
-    if (!match || wallet.credits < match.entryFee) return;
-
-    addTransaction('ENTRY', match.entryFee, `Stake Locked: ${match.title}`, 'Arbiter Escrow');
+  // 3. Match Data Polling (or Subscription)
+  useEffect(() => {
+    if (!session) return;
     
-    setMatches(prev => prev.map(m => {
-      if (m.id === matchId) {
-        const playerEntry: Player = {
-          id: currentUser.id,
-          username: currentUser.username,
-          rank: currentUser.rank,
-          elo: currentUser.elo,
-          trustFactor: currentUser.trustFactor,
-          isReady: false
-        };
-        const newPlayers = [...m.players, playerEntry];
-        return {
-          ...m,
-          players: newPlayers,
-          totalPrizePool: m.totalPrizePool + match.entryFee,
-          status: newPlayers.length >= m.maxPlayers ? MatchStatus.FULL : m.status
-        };
+    const fetchMatches = async () => {
+      // In a real app we join 'matches' with 'match_players' to get player counts
+      const { data } = await supabase.from('matches').select('*').order('created_at', { ascending: false });
+      if (data) {
+        // Map DB fields to UI types if necessary, for now we assume direct map or simple transform
+        const mappedMatches = data.map((m: any) => ({
+           id: m.id,
+           title: m.title,
+           gameType: 'COD_WARZONE', // Default or from DB
+           gameMode: m.game_mode,
+           map: m.map,
+           entryFee: m.entry_fee,
+           totalPrizePool: m.prize_pool,
+           players: [], // Loaded individually in MatchDetails for perf
+           maxPlayers: 10,
+           status: m.status,
+           score: m.score,
+           startTime: m.created_at
+        }));
+        setMatches(mappedMatches);
       }
-      return m;
-    }));
+    };
+
+    fetchMatches();
+    // Subscribe to new matches
+    const channel = supabase.channel('public:matches')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, fetchMatches)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session]);
+
+  if (!session) {
+    return <Auth />;
+  }
+
+  if (!userProfile) {
+    return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-orange-500 font-orbitron animate-pulse">LOADING PROFILE...</div>;
+  }
+
+  // --- Actions ---
+
+  const createMatch = async (matchData: any) => {
+    // Write to DB
+    const { error } = await supabase.from('matches').insert({
+      title: matchData.title,
+      entry_fee: matchData.entryFee,
+      prize_pool: 0, // Starts at 0, increments with joins
+      game_mode: 'Battle Royale', // hardcoded for now
+      map: 'Urzikstan',
+      status: 'OPEN'
+    });
+    if (error) alert("Failed to create match: " + error.message);
   };
 
-  const toggleReady = (matchId: string) => {
-    setMatches(prev => prev.map(m => m.id === matchId ? {
-      ...m,
-      players: m.players.map(p => p.id === currentUser.id ? { ...p, isReady: !p.isReady } : p),
-      status: MatchStatus.READY_CHECK
-    } : m));
-  };
+  const joinMatch = async (matchId: string) => {
+    if (wallet.credits < 25) { // Assuming 25 is entry
+      alert("Insufficient funds. Deposit crypto first.");
+      return;
+    }
 
-  const resolveMatch = (matchId: string, winnerId: string, report: string) => {
-    setMatches(prev => prev.map(m => {
-      if (m.id === matchId && m.status !== MatchStatus.COMPLETED) {
-        if (winnerId === currentUser.id) {
-          const netPrize = m.totalPrizePool * WINNER_PRIZE_PERCENT;
-          addTransaction('WIN', netPrize, `Victory Payout: ${m.title}`);
-        }
-        return { ...m, status: MatchStatus.COMPLETED, winnerId, verificationReport: report };
-      }
-      return m;
-    }));
+    // 1. Deduct Balance (Ideally done via Postgres Function/Transaction for safety)
+    const newBalance = wallet.credits - 25;
+    await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', session.user.id);
+    
+    // 2. Add to Match Players
+    await supabase.from('match_players').insert({
+      match_id: matchId,
+      user_id: session.user.id
+    });
+
+    // 3. Update Prize Pool
+    // NOTE: This should be a trigger or atomic increment in SQL
+    const match = matches.find(m => m.id === matchId);
+    if (match) {
+        await supabase.from('matches').update({ prize_pool: match.totalPrizePool + 25 }).eq('id', matchId);
+    }
+
+    // Refresh Local
+    fetchUserData(session.user.id);
   };
 
   return (
@@ -122,17 +152,17 @@ const App: React.FC = () => {
               <p className="text-white font-orbitron font-black text-xl leading-none mt-1">${wallet.credits.toFixed(0)}</p>
             </div>
             <Link to="/profile" className="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center overflow-hidden hover:border-orange-500 transition-all shadow-inner">
-              <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser.username}`} alt="Avatar" />
+               <div className="font-orbitron font-bold text-orange-500">{userProfile.username.substring(0,2).toUpperCase()}</div>
             </Link>
           </div>
         </nav>
 
         <main className="flex-1 container mx-auto px-6 py-10 max-w-7xl">
           <Routes>
-            <Route path="/" element={<Dashboard matches={matches} joinMatch={joinMatch} onCreateMatch={() => {}} />} />
-            <Route path="/match/:id" element={<MatchDetails matches={matches} joinMatch={joinMatch} toggleReady={toggleReady} startMatch={(id) => setMatches(prev => prev.map(m => m.id === id ? {...m, status: MatchStatus.LIVE} : m))} currentUser={currentUser} wallet={wallet} />} />
-            <Route path="/live/:id" element={<LiveMatch matches={matches} resolveMatch={resolveMatch} currentUser={currentUser} />} />
-            <Route path="/profile" element={<Profile user={currentUser} wallet={wallet} onDeposit={depositFunds} onWithdraw={() => {}} />} />
+            <Route path="/" element={<Dashboard matches={matches} joinMatch={joinMatch} onCreateMatch={createMatch} />} />
+            <Route path="/match/:id" element={<MatchDetails matches={matches} joinMatch={joinMatch} toggleReady={() => {}} startMatch={() => {}} currentUser={userProfile} wallet={wallet} />} />
+            <Route path="/live/:id" element={<LiveMatch matches={matches} resolveMatch={() => {}} currentUser={userProfile} />} />
+            <Route path="/profile" element={<Profile user={userProfile} wallet={wallet} onDeposit={() => {}} onWithdraw={() => {}} />} />
             <Route path="/anticheat" element={<AntiCheatDashboard />} />
             <Route path="/setup" element={<ServerSetup />} />
           </Routes>

@@ -83,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, joinMatch, onCreateMatch
           </div>
           <div className="text-center">
              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Daily Vol.</p>
-             <p className="text-2xl font-orbitron font-black text-orange-500">$24.8K</p>
+             <p className="text-2xl font-orbitron font-black text-orange-500">LIVE</p>
           </div>
         </div>
       </section>
@@ -109,61 +109,52 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, joinMatch, onCreateMatch
 
       {/* Lobby Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
-        {filteredMatches.map(match => (
-          <div key={match.id} className="glass-panel rounded-3xl overflow-hidden hover:border-orange-500/50 transition-all group flex flex-col shadow-lg border-white/10">
-            <div className="h-48 relative overflow-hidden bg-slate-900">
-               <img 
-                 src={match.gameType.includes('WARZONE') ? 'https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&q=80&w=600' : 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&q=80&w=600'} 
-                 className="w-full h-full object-cover opacity-30 group-hover:scale-105 transition-transform duration-700" 
-                 alt="Game Map" 
-               />
-               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
-               
-               <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 px-3 py-1.5 rounded-lg border border-white/10">
-                  <span className={`w-1.5 h-1.5 rounded-full ${match.status === MatchStatus.LIVE ? 'bg-orange-500 animate-pulse' : 'bg-lime-500'}`}></span>
-                  <span className="text-[9px] font-black text-white uppercase tracking-wider">{match.gameType.replace('_', ' ')}</span>
-               </div>
-
-               <div className="absolute bottom-4 left-6">
-                 <h3 className="text-2xl font-orbitron font-black text-white uppercase italic leading-tight">{match.title}</h3>
-                 <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{match.map} • {match.gameMode}</p>
-               </div>
-            </div>
-
-            <div className="p-8 space-y-6">
-              <div className="flex justify-between items-end">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 uppercase font-black block tracking-widest">Entry Fee</span>
-                  <span className="text-xl font-orbitron font-black text-white">${match.entryFee}</span>
+        {filteredMatches.length === 0 ? (
+           <div className="col-span-3 text-center py-20 opacity-50 font-orbitron">NO ACTIVE OPERATIONS. INITIALIZE A LOBBY.</div>
+        ) : (
+          filteredMatches.map(match => (
+            <div key={match.id} className="glass-panel rounded-3xl overflow-hidden hover:border-orange-500/50 transition-all group flex flex-col shadow-lg border-white/10">
+              <div className="h-48 relative overflow-hidden bg-slate-900">
+                <img 
+                  src={match.gameType.includes('WARZONE') ? 'https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&q=80&w=600' : 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&q=80&w=600'} 
+                  className="w-full h-full object-cover opacity-30 group-hover:scale-105 transition-transform duration-700" 
+                  alt="Game Map" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+                
+                <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 px-3 py-1.5 rounded-lg border border-white/10">
+                    <span className={`w-1.5 h-1.5 rounded-full ${match.status === MatchStatus.LIVE ? 'bg-orange-500 animate-pulse' : 'bg-lime-500'}`}></span>
+                    <span className="text-[9px] font-black text-white uppercase tracking-wider">{match.gameType.replace('_', ' ')}</span>
                 </div>
-                <div className="text-right space-y-1">
-                  <span className="text-[10px] text-orange-500 uppercase font-black block tracking-widest">Winner's Pot (70%)</span>
-                  <span className="text-2xl font-orbitron font-black text-orange-500 leading-none">${(match.totalPrizePool * 0.7).toFixed(0)}</span>
+
+                <div className="absolute bottom-4 left-6">
+                  <h3 className="text-2xl font-orbitron font-black text-white uppercase italic leading-tight">{match.title}</h3>
+                  <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{match.map} • {match.gameMode}</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5">
-                <div className="flex -space-x-2">
-                  {[...Array(Math.max(1, Math.min(match.players.length, 4)))].map((_, i) => (
-                    <div key={i} className="w-8 h-8 rounded-lg border border-slate-950 bg-slate-800 flex items-center justify-center overflow-hidden">
-                       <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${i+match.id}`} alt="p" />
-                    </div>
-                  ))}
+              <div className="p-8 space-y-6">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-black block tracking-widest">Entry Fee</span>
+                    <span className="text-xl font-orbitron font-black text-white">${match.entryFee}</span>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <span className="text-[10px] text-orange-500 uppercase font-black block tracking-widest">Winner's Pot (70%)</span>
+                    <span className="text-2xl font-orbitron font-black text-orange-500 leading-none">${(match.totalPrizePool * 0.7).toFixed(0)}</span>
+                  </div>
                 </div>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {match.players.length} / {match.maxPlayers} Registered
-                </div>
-              </div>
 
-              <Link 
-                to={match.status === MatchStatus.LIVE ? `/live/${match.id}` : `/match/${match.id}`}
-                className="block w-full text-center py-4 rounded-xl font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all bg-orange-500 text-slate-950 hover:bg-white shadow-lg shadow-orange-500/10"
-              >
-                {match.status === MatchStatus.LIVE ? 'Enter Active War Zone' : 'Secure Deployment Slot'}
-              </Link>
+                <Link 
+                  to={match.status === MatchStatus.LIVE ? `/live/${match.id}` : `/match/${match.id}`}
+                  className="block w-full text-center py-4 rounded-xl font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all bg-orange-500 text-slate-950 hover:bg-white shadow-lg shadow-orange-500/10"
+                >
+                  {match.status === MatchStatus.LIVE ? 'Enter Active War Zone' : 'Secure Deployment Slot'}
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Host Modal */}
