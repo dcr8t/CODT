@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import { UserWallet, Transaction } from '../types';
 import { createInvoice } from '../services/nowpayments';
 import { authorizeWithdrawal } from '../services/geminiService';
@@ -17,6 +18,8 @@ const Profile: React.FC<ProfileProps> = ({ user, wallet, onDeposit, onWithdraw }
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditMessage, setAuditMessage] = useState<string | null>(null);
+  const [steamIdInput, setSteamIdInput] = useState('');
+  const [linkingSteam, setLinkingSteam] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -26,20 +29,36 @@ const Profile: React.FC<ProfileProps> = ({ user, wallet, onDeposit, onWithdraw }
     }
   }, [location]);
 
+  const linkSteamId = async () => {
+    if (steamIdInput.length !== 17) {
+      alert("Invalid Steam ID 64. It must be 17 digits.");
+      return;
+    }
+    setLinkingSteam(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ steam_id: steamIdInput }).eq('id', user.id);
+      if (error) throw error;
+      window.location.reload();
+    } catch (e: any) {
+      alert("Error linking Steam ID: " + e.message);
+    } finally {
+      setLinkingSteam(false);
+    }
+  };
+
   const handleDeposit = async () => {
     setIsProcessing(true);
     setAuditMessage(null);
     try {
+      const orderId = `ER_${Date.now()}_${user.id}`;
       const invoice = await createInvoice({
         price_amount: depositAmount,
         price_currency: 'usd',
         pay_currency: payCurrency,
-        order_description: `Combat Credits for ${user.username}`,
-        order_id: `ER_${Date.now()}`
+        order_description: `Credits for ${user.username}`,
+        order_id: orderId
       });
 
-      // In production, you would handle this via Webhooks, 
-      // but for this UI we redirect to the invoice page.
       if (invoice.invoice_url) {
         window.location.href = invoice.invoice_url;
       }
@@ -85,6 +104,24 @@ const Profile: React.FC<ProfileProps> = ({ user, wallet, onDeposit, onWithdraw }
           <div>
             <h1 className="text-3xl font-orbitron font-black uppercase tracking-tighter">{user.username}</h1>
             <p className="text-orange-500 font-bold text-[10px] tracking-widest uppercase mt-1">{user.rank} Level Player • Trust Score: {user.trustFactor}%</p>
+            {user.steam_id ? (
+               <p className="text-lime-500 font-bold text-[10px] tracking-widest uppercase mt-2 flex items-center gap-2">
+                 <i className="fa-brands fa-steam"></i> Steam Linked: {user.steam_id}
+               </p>
+            ) : (
+               <div className="mt-4 flex gap-2">
+                 <input 
+                   type="text" 
+                   placeholder="Steam ID 64 (17 digits)" 
+                   className="bg-slate-950 border border-white/10 px-3 py-1 rounded text-xs text-white"
+                   value={steamIdInput}
+                   onChange={e => setSteamIdInput(e.target.value)}
+                 />
+                 <button onClick={linkSteamId} disabled={linkingSteam} className="bg-orange-500 text-slate-950 px-3 py-1 rounded text-[10px] font-black uppercase">
+                    {linkingSteam ? 'Linking...' : 'Link Steam'}
+                 </button>
+               </div>
+            )}
           </div>
         </div>
         <div className="text-right bg-black/30 p-6 rounded-3xl border border-white/5 min-w-[200px]">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Match, MatchStatus, UserWallet } from '../types';
@@ -16,6 +17,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
   const { id } = useParams();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [copied, setCopied] = useState(false);
   const match = matches.find(m => m.id === id);
 
   if (!match) return <div className="text-center py-20 font-orbitron">404: LOBBY DEFUNCT</div>;
@@ -24,7 +26,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
   const isReady = userInMatch?.isReady || false;
   const allReady = match.players.length >= 2 && match.players.every(p => p.isReady);
   
-  // Dynamic Math: Show what the prize is RIGHT NOW vs what it will be
+  // Dynamic Math
   const currentTotalPool = match.totalPrizePool;
   const currentWinnerShare = currentTotalPool * WINNER_PRIZE_PERCENT;
   const projectedFullPool = match.entryFee * match.maxPlayers;
@@ -43,6 +45,14 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
     setShowConfirm(true);
   };
 
+  const copyServerIp = () => {
+    if (match.serverIp) {
+      navigator.clipboard.writeText(`connect ${match.serverIp}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -54,7 +64,14 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
               <div>
                 <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.5em] mb-2 block">Mission Parameters</span>
                 <h1 className="text-5xl font-orbitron font-black text-white italic uppercase tracking-tighter">{match.title}</h1>
-                <p className="text-slate-500 font-bold uppercase text-xs tracking-[0.2em] mt-2">{match.gameType} • {match.map}</p>
+                <div className="flex flex-wrap gap-3 mt-3">
+                    <p className="text-slate-500 font-bold uppercase text-xs tracking-[0.2em]">{match.gameType} • {match.map}</p>
+                    {match.isCloudReady && (
+                        <span className="bg-[#76b900]/20 text-[#76b900] border border-[#76b900]/30 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                            <i className="fa-brands fa-nvidia"></i> GeForce Now Ready
+                        </span>
+                    )}
+                </div>
               </div>
               <div className="flex gap-4">
                 <div className="text-center bg-black/60 px-6 py-4 rounded-3xl border border-white/5">
@@ -93,7 +110,10 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
                     </div>
                     <div>
                       <p className="font-black text-sm text-white uppercase italic">{p.username}</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{p.rank}</p>
+                      <div className="flex gap-2">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{p.rank}</p>
+                        {p.platform === 'GEFORCE_NOW' && <i className="fa-solid fa-cloud text-[10px] text-[#76b900]" title="Cloud Gamer"></i>}
+                      </div>
                     </div>
                   </div>
                   {p.isReady ? (
@@ -117,6 +137,36 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ matches, joinMatch, toggleR
         </div>
 
         <aside className="space-y-6">
+          {/* Cloud Gamer Command Center */}
+          {userInMatch && match.isCloudReady && (
+            <div className="glass-panel p-6 rounded-[30px] border-[#76b900]/30 bg-[#76b900]/5 animate-in slide-in-from-right">
+                <div className="flex items-center gap-3 mb-4">
+                    <i className="fa-solid fa-cloud text-[#76b900]"></i>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-white">GeForce Now / Mobile Uplink</h4>
+                </div>
+                <p className="text-[9px] text-slate-400 mb-4 leading-relaxed">
+                    Cloud instances cannot browse servers. Tap below to copy the connection string, then paste into your game console.
+                </p>
+                <button 
+                    onClick={copyServerIp}
+                    className="w-full py-4 bg-slate-900 border border-[#76b900]/30 text-[#76b900] rounded-xl font-mono text-xs font-bold hover:bg-[#76b900] hover:text-slate-950 transition-all flex items-center justify-center gap-2 group"
+                >
+                    {copied ? (
+                        <>
+                            <i className="fa-solid fa-check"></i> COPIED TO CLIPBOARD
+                        </>
+                    ) : (
+                        <>
+                            <i className="fa-regular fa-copy"></i> COPY CONNECT STRING
+                        </>
+                    )}
+                </button>
+                <div className="mt-3 text-center">
+                    <p className="text-[8px] text-slate-500 uppercase tracking-widest">Server: {match.serverRegion}</p>
+                </div>
+            </div>
+          )}
+
           <section className={`glass-panel p-8 rounded-[40px] border-orange-500/30 sticky top-28 transition-all ${userInMatch ? 'bg-orange-500/5' : ''}`}>
             
             {userInMatch && (

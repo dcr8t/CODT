@@ -1,3 +1,4 @@
+
 export enum MatchStatus {
   OPEN = 'OPEN',
   FULL = 'FULL',
@@ -25,6 +26,7 @@ export interface Player {
   elo: number;
   isReady: boolean;
   trustFactor: number;
+  platform?: 'PC' | 'XBOX' | 'PS5' | 'GEFORCE_NOW' | 'MOBILE';
 }
 
 export interface LinkedAccount {
@@ -50,6 +52,9 @@ export interface Match {
   startTime: string;
   winnerId?: string;
   verificationReport?: string;
+  serverIp?: string; // For joining
+  serverRegion?: string;
+  isCloudReady?: boolean; // Dedicated server with GSI pre-installed
 }
 
 export interface UserWallet {

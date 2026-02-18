@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { analyzeAntiCheatLog } from '../services/geminiService';
 
@@ -33,7 +34,7 @@ const AntiCheatDashboard: React.FC = () => {
           INTEGRITY <span className="text-lime-500">ENFORCED.</span>
         </h1>
         <p className="text-slate-400 max-w-2xl mx-auto text-lg leading-relaxed">
-          Elite Rivals utilizes kernel-level telemetry and <span className="text-white font-bold">Gemini-X Behavioral Analysis</span> to ensure every dollar of the 70% prize pool is earned fairly.
+          Elite Rivals utilizes <span className="text-white font-bold">Server-Side GSI Heuristics</span> and Gemini-X Behavioral Analysis. This ensures fair play on all platforms, including <span className="text-[#76b900]">GeForce Now</span> and Mobile.
         </p>
       </header>
 
@@ -48,7 +49,7 @@ const AntiCheatDashboard: React.FC = () => {
               </div>
               <div>
                 <h4 className="font-orbitron font-black text-sm text-white mb-2 uppercase tracking-tighter">Behavioral Heuristics</h4>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">AI identifies non-human input smoothing and pixel-perfect tracking that traditional anti-cheats miss.</p>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">AI identifies non-human input smoothing and pixel-perfect tracking that traditional anti-cheats miss, without needing client installation.</p>
               </div>
             </li>
             <li className="flex gap-6">
@@ -56,8 +57,8 @@ const AntiCheatDashboard: React.FC = () => {
                 <i className="fa-solid fa-network-wired text-2xl"></i>
               </div>
               <div>
-                <h4 className="font-orbitron font-black text-sm text-white mb-2 uppercase tracking-tighter">GSI Packet Validation</h4>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">Real-time Game State Integration (GSI) verifies match results directly from the server memory.</p>
+                <h4 className="font-orbitron font-black text-sm text-white mb-2 uppercase tracking-tighter">Cloud Gaming Verified</h4>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">Fully compatible with GeForce Now. We analyze the server state, not your local machine, ensuring security even on virtual machines.</p>
               </div>
             </li>
             <li className="flex gap-6">
@@ -82,11 +83,11 @@ const AntiCheatDashboard: React.FC = () => {
             <div className="bg-black/60 rounded-3xl p-8 font-mono text-[11px] border border-white/5 space-y-4 mb-10 shadow-inner">
               <div className="flex justify-between border-b border-white/5 pb-3">
                 <span className="text-slate-500 tracking-widest uppercase">Kernel Driver:</span>
-                <span className="text-lime-500 font-bold">SYSCALL_READY</span>
+                <span className="text-lime-500 font-bold">SERVER_SIDE_ONLY</span>
               </div>
               <div className="flex justify-between border-b border-white/5 pb-3">
-                <span className="text-slate-500 tracking-widest uppercase">GSI Link Status:</span>
-                <span className="text-lime-500 font-bold">ESTABLISHED</span>
+                <span className="text-slate-500 tracking-widest uppercase">Cloud Latency Check:</span>
+                <span className="text-lime-500 font-bold">COMPATIBLE</span>
               </div>
               <div className="flex justify-between border-b border-white/5 pb-3">
                 <span className="text-slate-500 tracking-widest uppercase">Anomaly Detection:</span>

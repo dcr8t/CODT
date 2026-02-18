@@ -1,3 +1,4 @@
+
 import { Match, MatchStatus } from './types';
 
 export const WINNER_PRIZE_PERCENT = 0.7; // 70% to the winner
@@ -16,7 +17,10 @@ export const INITIAL_MATCHES: Match[] = [
     maxPlayers: 10,
     status: MatchStatus.OPEN,
     score: { teamA: 0, teamB: 0 },
-    startTime: new Date().toISOString()
+    startTime: new Date().toISOString(),
+    serverIp: '192.168.1.50:27015',
+    serverRegion: 'NA-East',
+    isCloudReady: true
   },
   {
     id: 'cod_m_1',
@@ -30,7 +34,10 @@ export const INITIAL_MATCHES: Match[] = [
     maxPlayers: 10,
     status: MatchStatus.OPEN,
     score: { teamA: 0, teamB: 0 },
-    startTime: new Date().toISOString()
+    startTime: new Date().toISOString(),
+    serverIp: '142.44.143.22:27015',
+    serverRegion: 'EU-West',
+    isCloudReady: true
   },
   {
     id: 'cod_w_2',
@@ -44,6 +51,9 @@ export const INITIAL_MATCHES: Match[] = [
     maxPlayers: 10,
     status: MatchStatus.OPEN,
     score: { teamA: 0, teamB: 0 },
-    startTime: new Date().toISOString()
+    startTime: new Date().toISOString(),
+    serverIp: 'connect 55.122.99.10:27025',
+    serverRegion: 'NA-Central',
+    isCloudReady: false
   }
 ];
